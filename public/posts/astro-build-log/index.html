@@ -1,0 +1,1635 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="description" content="A full Astro 6 crash course: core concepts, islands, content, server features, vanilla and React migration, and a browsable boilerplate.">
+<style>
+html { color-scheme: light; }
+body { margin: 0; }
+img { max-width: 100%; }
+[hidden] { display: none !important; }
+</style>
+<title>Astro Crash Course</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Unbounded:wght@500;700&family=IBM+Plex+Sans:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: sticky contents rail on the left, a 46rem reading column, code blocks as dark "terminal" slabs; islands are the only orange on the page */
+:root {
+  --bg: #f4f5f8;
+  --surface: #ffffff;
+  --ink: #151922;
+  --muted: #586174;
+  --line: #dce0e8;
+  --accent: #c2410c;
+  --accent-ink: #9a3412;
+  --accent-soft: #fdeee4;
+  --static: #e7eaf0;
+  --static-ink: #6a7386;
+  --code-bg: #12161e;
+  --code-fg: #d9dee8;
+  --code-line: #252b37;
+  --tok-key: #ff9a62;
+  --tok-str: #9ad6a8;
+  --tok-fn: #8fc1ff;
+  --tok-tag: #f5b971;
+  --tok-attr: #c6a8ff;
+  --tok-com: #6f788a;
+  --font-display: "Unbounded", "Segoe UI", system-ui, sans-serif;
+  --font-body: "IBM Plex Sans", "Segoe UI", system-ui, -apple-system, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
+  --radius: 10px;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0c0f15; --surface: #131821; --ink: #e5e8ef; --muted: #98a1b3; --line: #252c39;
+    --accent: #ff7a3d; --accent-ink: #ff9a66; --accent-soft: #2a1810; --static: #1b212c; --static-ink: #8892a5;
+    --code-bg: #090c11; --code-fg: #d9dee8; --code-line: #1f2530;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0c0f15; --surface: #131821; --ink: #e5e8ef; --muted: #98a1b3; --line: #252c39;
+  --accent: #ff7a3d; --accent-ink: #ff9a66; --accent-soft: #2a1810; --static: #1b212c; --static-ink: #8892a5;
+  --code-bg: #090c11; --code-fg: #d9dee8; --code-line: #1f2530;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; scroll-padding-top: 72px; }
+@media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } }
+body {
+  background: var(--bg); color: var(--ink);
+  font: 16px/1.65 var(--font-body);
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+}
+body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-area-inset-top, 0px); z-index: 10; background: var(--bg); }
+a { color: var(--accent-ink); text-underline-offset: 3px; }
+a:focus-visible, button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 4px; }
+code { font-family: var(--font-mono); font-size: .86em; background: var(--static); padding: .1em .35em; border-radius: 5px; overflow-wrap: anywhere; }
+
+.shell { max-width: 1240px; margin: 0 auto; display: grid; grid-template-columns: 240px minmax(0, 1fr); gap: 56px; }
+.rail { position: sticky; top: env(safe-area-inset-top, 0px); align-self: start; max-height: 100vh; overflow-y: auto; padding-block: 32px; }
+.rail .brand { font-family: var(--font-display); font-weight: 700; font-size: 15px; letter-spacing: .02em; display: flex; align-items: center; gap: 10px; margin-bottom: 24px; }
+.rail .brand i { width: 12px; height: 12px; border-radius: 50%; background: var(--accent); box-shadow: 0 0 0 4px var(--accent-soft); }
+.toc { list-style: none; margin: 0; padding: 0; display: grid; gap: 2px; counter-reset: toc; }
+.toc a { display: grid; grid-template-columns: 26px 1fr; padding: 6px 10px; border-radius: 7px; color: var(--muted); text-decoration: none; font-size: 14px; line-height: 1.35; }
+.toc a span { font-family: var(--font-mono); font-size: 11.5px; padding-top: 2px; }
+.toc a:hover { color: var(--ink); background: var(--static); }
+.toc a.on { color: var(--ink); background: var(--surface); box-shadow: inset 2px 0 0 var(--accent); }
+.rail .meta { margin-top: 24px; font-size: 12.5px; color: var(--muted); line-height: 1.5; }
+
+.topbar { display: none; }
+main { min-width: 0; padding-block: 40px 96px; }
+.col { max-width: 46rem; }
+
+.hero { padding-bottom: 40px; border-bottom: 1px solid var(--line); margin-bottom: 8px; }
+.eyebrow { font-family: var(--font-mono); font-size: 12px; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+h1 { font-family: var(--font-display); font-weight: 700; font-size: clamp(34px, 6vw, 56px); line-height: 1.04; letter-spacing: -.02em; margin: 12px 0 18px; text-wrap: balance; }
+h1 em { font-style: normal; color: var(--accent); }
+.lede { font-size: 18.5px; color: var(--muted); max-width: 40rem; margin: 0 0 32px; }
+
+.island-map { display: grid; grid-template-columns: minmax(0, 1.5fr) minmax(0, 1fr); gap: 28px; align-items: center; background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 22px; }
+.page { border: 1px solid var(--line); border-radius: 10px; overflow: hidden; background: var(--bg); }
+.page .chrome { display: flex; gap: 6px; padding: 9px 12px; border-bottom: 1px solid var(--line); align-items: center; }
+.page .chrome b { width: 8px; height: 8px; border-radius: 50%; background: var(--line); }
+.page .chrome span { margin-left: 10px; font-family: var(--font-mono); font-size: 11px; color: var(--muted); }
+.page .body { padding: 12px; display: grid; gap: 8px; grid-template-columns: 2fr 1fr; }
+.blk { border-radius: 6px; padding: 9px 10px; font-family: var(--font-mono); font-size: 11px; line-height: 1.3; background: var(--static); color: var(--static-ink); min-height: 40px; display: flex; flex-direction: column; justify-content: space-between; gap: 4px; }
+.blk.isl { background: var(--accent-soft); color: var(--accent-ink); outline: 1.5px solid var(--accent); }
+.blk small { font-size: 10.5px; opacity: .85; }
+.wide { grid-column: 1 / -1; }
+.tall { min-height: 92px; }
+.map-key { display: grid; gap: 14px; font-size: 14px; }
+.map-key h3 { font-family: var(--font-display); font-weight: 500; font-size: 17px; margin: 0; line-height: 1.3; }
+.map-key p { margin: 0; color: var(--muted); }
+.kb { display: grid; grid-template-columns: auto 1fr; gap: 6px 12px; align-items: center; font-family: var(--font-mono); font-size: 12.5px; }
+.sw { width: 14px; height: 14px; border-radius: 4px; background: var(--static); }
+.sw.isl { background: var(--accent-soft); outline: 1.5px solid var(--accent); }
+.kb .n { font-variant-numeric: tabular-nums; }
+
+section { padding-top: 56px; }
+h2 { font-family: var(--font-display); font-weight: 500; font-size: clamp(23px, 3.2vw, 30px); line-height: 1.2; letter-spacing: -.01em; margin: 0 0 16px; text-wrap: balance; display: flex; gap: 14px; align-items: baseline; }
+h2 .num { font-family: var(--font-mono); font-size: 13px; color: var(--accent); letter-spacing: .04em; font-weight: 500; flex: none; }
+h3 { font-family: var(--font-body); font-weight: 600; font-size: 18px; margin: 32px 0 8px; }
+p { margin: 0 0 14px; }
+.col > p, .col > h3 { max-width: 42rem; }
+
+.code { margin: 18px 0 20px; background: var(--code-bg); border-radius: var(--radius); border: 1px solid var(--code-line); overflow: hidden; min-width: 0; }
+.code header { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 8px 10px 8px 14px; border-bottom: 1px solid var(--code-line); }
+.code .fname { font-family: var(--font-mono); font-size: 12px; color: #aab3c4; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
+.code .lang { color: #6f788a; margin-left: 8px; }
+.code button { font: 500 12px var(--font-mono); color: #c6cdd9; background: transparent; border: 1px solid #333b4a; border-radius: 6px; padding: 4px 10px; cursor: pointer; flex: none; }
+.code button:hover { border-color: #ff9a62; color: #ffd2b8; }
+.code pre { margin: 0; padding: 14px 16px 16px; overflow-x: auto; font: 13.3px/1.62 var(--font-mono); color: var(--code-fg); tab-size: 2; }
+.code pre code { background: none; padding: 0; font-size: inherit; overflow-wrap: normal; color: inherit; }
+.token.comment, .token.prolog, .token.doctype { color: var(--tok-com); }
+.token.keyword, .token.boolean, .token.important, .token.atrule, .token.builtin { color: var(--tok-key); }
+.token.string, .token.attr-value, .token.template-string, .token.char, .token.url { color: var(--tok-str); }
+.token.function, .token.class-name { color: var(--tok-fn); }
+.token.tag, .token.selector { color: var(--tok-tag); }
+.token.attr-name, .token.property, .token.number, .token.constant { color: var(--tok-attr); }
+.token.punctuation, .token.operator { color: #9aa3b5; }
+.token.tag .token.punctuation { color: #c99a5b; }
+
+.explain { border-left: 2px solid var(--line); padding-left: 16px; margin: 0 0 18px; color: var(--ink); }
+.explain p { margin-bottom: 10px; }
+.explain .who { font-family: var(--font-mono); font-size: 12.5px; color: var(--accent-ink); display: block; margin-bottom: 2px; }
+
+.tbl { overflow-x: auto; margin: 16px 0 22px; border: 1px solid var(--line); border-radius: var(--radius); background: var(--surface); }
+table { border-collapse: collapse; width: 100%; font-size: 14.5px; }
+th, td { text-align: left; padding: 10px 14px; border-bottom: 1px solid var(--line); vertical-align: top; }
+th { font-size: 12px; font-family: var(--font-mono); text-transform: uppercase; letter-spacing: .06em; color: var(--muted); font-weight: 500; background: var(--bg); }
+tr:last-child td { border-bottom: 0; }
+td code { white-space: nowrap; }
+
+.note { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 14px 16px; margin: 18px 0; font-size: 15px; }
+.note .tag { font-family: var(--font-mono); font-size: 11.5px; letter-spacing: .08em; text-transform: uppercase; color: var(--accent-ink); display: block; margin-bottom: 4px; }
+.note p:last-child { margin: 0; }
+
+.compare { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 14px; margin: 18px 0; }
+.compare .code { margin: 0; }
+.compare .label { font-family: var(--font-mono); font-size: 12px; text-transform: uppercase; letter-spacing: .08em; color: var(--muted); margin-bottom: 6px; }
+.compare .label.after { color: var(--accent-ink); }
+.compare > div { min-width: 0; }
+
+.steps { counter-reset: step; display: grid; gap: 4px; margin: 10px 0 18px; padding: 0; list-style: none; }
+.steps > li { counter-increment: step; display: grid; grid-template-columns: 32px minmax(0, 1fr); gap: 4px; }
+.steps > li::before { content: counter(step); font-family: var(--font-mono); font-size: 12px; color: var(--accent); padding-top: 3px; }
+
+.explorer { display: grid; grid-template-columns: 250px minmax(0, 1fr); border: 1px solid var(--line); border-radius: 14px; overflow: hidden; background: var(--surface); margin: 20px 0; }
+.tree { padding: 12px 8px; border-right: 1px solid var(--line); font-family: var(--font-mono); font-size: 12.5px; max-height: 640px; overflow-y: auto; }
+.tree .dir { color: var(--muted); padding: 6px 8px 2px; }
+.tree button { display: block; width: 100%; text-align: left; font: inherit; color: var(--ink); background: none; border: 0; padding: 4px 8px; border-radius: 6px; cursor: pointer; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.tree button:hover { background: var(--static); }
+.tree button[aria-selected="true"] { background: var(--accent-soft); color: var(--accent-ink); }
+.viewer { min-width: 0; padding: 12px; }
+.viewer .code { margin: 0 0 12px; }
+.viewer .why { font-size: 14.5px; color: var(--muted); padding: 0 4px 6px; }
+.viewer .code pre { max-height: 520px; overflow: auto; }
+
+.foot { margin-top: 72px; padding-top: 20px; border-top: 1px solid var(--line); font-size: 13.5px; color: var(--muted); }
+
+@media (max-width: 980px) {
+  .shell { grid-template-columns: minmax(0, 1fr); gap: 0; }
+  .rail { position: fixed; inset: 0 auto 0 0; width: min(300px, 86vw); background: var(--surface); z-index: 30; padding: calc(24px + env(safe-area-inset-top, 0px)) 16px 24px calc(16px + env(safe-area-inset-left, 0px)); box-shadow: 0 0 0 100vmax rgba(0,0,0,.35); max-height: none; }
+  .rail[hidden] { display: none !important; }
+  .topbar { display: flex; position: sticky; top: env(safe-area-inset-top, 0px); z-index: 20; align-items: center; justify-content: space-between; gap: 12px; padding-block: 10px; background: var(--bg); border-bottom: 1px solid var(--line); margin: 0 calc(-1 * max(16px, env(safe-area-inset-right, 0px))) 0 calc(-1 * max(16px, env(safe-area-inset-left, 0px))); padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+  .topbar strong { font-family: var(--font-display); font-weight: 700; font-size: 14px; }
+  .topbar button { font: 500 13px var(--font-body); color: var(--ink); background: var(--surface); border: 1px solid var(--line); border-radius: 8px; padding: 6px 12px; cursor: pointer; }
+}
+@media (min-width: 981px) { .rail[hidden] { display: block !important; } }
+@media (max-width: 720px) {
+  .island-map, .compare, .explorer { grid-template-columns: minmax(0, 1fr); }
+  .tree { border-right: 0; border-bottom: 1px solid var(--line); max-height: 220px; }
+  main { padding-block: 24px 72px; }
+  .lede { font-size: 17px; }
+}
+</style>
+</head>
+<body>
+<div class="topbar">
+  <strong>Astro Crash Course</strong>
+  <button id="tocBtn" type="button" aria-controls="rail" aria-expanded="false">Contents</button>
+</div>
+
+<div class="shell">
+  <nav class="rail" id="rail" aria-label="Contents" hidden>
+    <div class="brand"><i></i>Astro Crash Course</div>
+    <ol class="toc">
+      <li><a href="#model"><span>01</span>Mental model</a></li>
+      <li><a href="#setup"><span>02</span>Setup and structure</a></li>
+      <li><a href="#anatomy"><span>03</span>Component anatomy</a></li>
+      <li><a href="#routing"><span>04</span>Routing</a></li>
+      <li><a href="#layouts"><span>05</span>Layouts and styling</a></li>
+      <li><a href="#islands"><span>06</span>Islands</a></li>
+      <li><a href="#content"><span>07</span>Content collections</a></li>
+      <li><a href="#server"><span>08</span>Server features</a></li>
+      <li><a href="#vanilla"><span>09</span>Vanilla to Astro</a></li>
+      <li><a href="#react"><span>10</span>React to Astro</a></li>
+      <li><a href="#boilerplate"><span>11</span>Boilerplate</a></li>
+      <li><a href="#essentials"><span>12</span>Essentials</a></li>
+      <li><a href="#cheats"><span>13</span>Cheat sheet</a></li>
+    </ol>
+    <p class="meta">Written for Astro 6. Version notes in section 01 say what is verified and what to double-check.</p>
+  </nav>
+
+  <main>
+  <div class="col">
+
+  <header class="hero">
+    <h1>Astro Build Log</h1>
+    <p class="lede">A complete crash course: how Astro thinks, every core API, moving a vanilla site or a React app over, and a full boilerplate you can copy file by file.</p>
+
+    <div class="island-map" role="img" aria-label="A page where only two components, the search box and the comments, ship JavaScript">
+      <div class="page">
+        <div class="chrome"><b></b><b></b><b></b><span>/blog/hello-astro</span></div>
+        <div class="body">
+          <div class="blk wide">Header.astro<small>static HTML</small></div>
+          <div class="blk">Hero.astro<small>static HTML</small></div>
+          <div class="blk isl">Search.tsx<small>client:load</small></div>
+          <div class="blk tall">Article body (Markdown)<small>static HTML</small></div>
+          <div class="blk tall">TOC.astro<small>static HTML</small></div>
+          <div class="blk isl wide">Comments.tsx<small>client:visible</small></div>
+          <div class="blk wide">Footer.astro<small>static HTML</small></div>
+        </div>
+      </div>
+      <div class="map-key">
+        <h3>The page is the ocean. Interactive parts are islands.</h3>
+        <p>Every component renders to HTML on the server. Only the ones you mark with a <code>client:*</code> directive send JavaScript, and each one loads on its own schedule.</p>
+        <div class="kb">
+          <span class="sw"></span><span><span class="n">5</span> components · 0 KB JS</span>
+          <span class="sw isl"></span><span><span class="n">2</span> islands · JS for these only</span>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <!-- 01 -->
+  <section id="model">
+    <h2><span class="num">01</span>Mental model</h2>
+    <p>Astro is a content-first framework. It renders HTML on the server, either once at build time or on each request, and ships zero client JavaScript unless a component asks for it. Treat it as HTML templates with superpowers, not as a React app that happens to output HTML.</p>
+    <p>Three ideas carry the whole framework. Every page is a real route in a multi-page app, so navigation is a normal page load. Components run once on the server and become static HTML. When a piece of UI needs interactivity, you mark it as an island and only its JavaScript reaches the browser. React, Vue, Svelte, Solid and Preact components can all be islands, even on the same page.</p>
+    <div class="tbl"><table>
+      <thead><tr><th>Good fit</th><th>Weak fit</th></tr></thead>
+      <tbody>
+        <tr><td>Blogs, docs, marketing sites, portfolios, storefronts, dashboards with mostly static chrome</td><td>Apps where nearly every pixel is stateful (an editor, a mail client). They can live inside Astro as one large island, but most of the benefit disappears.</td></tr>
+      </tbody>
+    </table></div>
+    <div class="note">
+      <span class="tag">Version notes</span>
+      <p>High confidence, verified against the <a href="https://astro.build/blog/astro-6" target="_blank" rel="noopener">Astro 6 release post</a>: Astro 6 is the current stable major, with a redesigned dev server, stable live content collections, a stable CSP API, a stable Fonts API, and Zod imported from <code>astro/zod</code>.</p>
+      <p>From memory, worth checking in the docs before pinning: the exact latest 6.x minor, the Node.js minimum (a third-party tutorial says 22.x), the live collections config file name, and the exact shape of the <code>fonts</code> config option.</p>
+    </div>
+  </section>
+
+  <!-- 02 -->
+  <section id="setup">
+    <h2><span class="num">02</span>Setup and project structure</h2>
+    <p>One command scaffolds a project. Pick the minimal or blog template when it asks.</p>
+<script type="text/plain" class="src" data-lang="bash" data-file="terminal">
+npm create astro@latest my-site
+cd my-site
+npm run dev
+npm run build
+npm run preview
+npx astro add react
+npx astro add mdx sitemap
+npx astro add vercel
+npx astro check
+</script>
+    <div class="explain">
+      <p><code>dev</code> starts the dev server on port 4321. <code>build</code> writes the production site to <code>dist/</code>, and <code>preview</code> serves that build locally. <code>astro add</code> installs an integration and edits <code>astro.config.mjs</code> for you; it is the safest way to add React, MDX, a sitemap or a deployment adapter. <code>astro check</code> type-checks your <code>.astro</code> files.</p>
+    </div>
+<script type="text/plain" class="src" data-lang="text" data-file="project layout">
+my-site/
+├── public/
+│   └── favicon.svg
+├── src/
+│   ├── assets/
+│   ├── components/
+│   ├── layouts/
+│   ├── pages/
+│   │   └── index.astro
+│   ├── content/
+│   ├── content.config.ts
+│   ├── middleware.ts
+│   ├── actions/
+│   └── styles/
+├── astro.config.mjs
+├── tsconfig.json
+└── package.json
+</script>
+    <div class="tbl"><table>
+      <thead><tr><th>Path</th><th>What lives there</th></tr></thead>
+      <tbody>
+        <tr><td><code>public/</code></td><td>Copied as-is to the site root: favicons, robots.txt, files you do not want processed</td></tr>
+        <tr><td><code>src/pages/</code></td><td>The only folder Astro enforces. Every file here becomes a route.</td></tr>
+        <tr><td><code>src/components/</code></td><td>Reusable <code>.astro</code> and framework components (convention)</td></tr>
+        <tr><td><code>src/layouts/</code></td><td>Page shells with html, head, nav and footer (convention)</td></tr>
+        <tr><td><code>src/assets/</code></td><td>Images you want optimized and hashed at build</td></tr>
+        <tr><td><code>src/content.config.ts</code></td><td>Content collection definitions</td></tr>
+        <tr><td><code>src/middleware.ts</code></td><td>Code that runs before requests (optional)</td></tr>
+        <tr><td><code>src/actions/</code></td><td>Type-safe server functions (optional)</td></tr>
+        <tr><td><code>astro.config.mjs</code></td><td>Integrations, adapter, output mode, site URL</td></tr>
+      </tbody>
+    </table></div>
+  </section>
+
+  <!-- 03 -->
+  <section id="anatomy">
+    <h2><span class="num">03</span>Anatomy of a .astro component</h2>
+    <p>A <code>.astro</code> file has two parts. The frontmatter between the <code>---</code> fences runs on the server only. The template below it looks like HTML with JSX-style expressions.</p>
+<script type="text/plain" class="src" data-lang="astro" data-file="src/components/Card.astro">
+---
+import Button from './Button.astro';
+
+interface Props {
+  title: string;
+  tags?: string[];
+  featured?: boolean;
+}
+
+const { title, tags = [], featured = false } = Astro.props;
+const res = await fetch('https://api.github.com/repos/withastro/astro');
+const repo = await res.json();
+const isLoggedIn = Astro.cookies.has('session');
+---
+
+<article class:list={['card', { featured }]}>
+  <h2>{title}</h2>
+  <p>{repo.stargazers_count} stars</p>
+
+  {tags.length > 0 && (
+    <ul>
+      {tags.map((tag) => <li>{tag}</li>)}
+    </ul>
+  )}
+
+  {isLoggedIn ? <Button>Dashboard</Button> : <a href="/login">Log in</a>}
+
+  <slot />
+  <footer><slot name="footer">Default footer</slot></footer>
+</article>
+
+<style>
+  .card { padding: 1rem; border-radius: 8px; }
+  .featured { border: 2px solid gold; }
+</style>
+
+<script>
+  document.querySelectorAll('.card').forEach((el) => {
+    el.addEventListener('click', () => el.classList.toggle('open'));
+  });
+<\/script>
+</script>
+    <div class="explain">
+      <p><span class="who">Frontmatter</span>Plain TypeScript that runs once per render on the server. Top-level <code>await</code> works, secrets stay safe, and nothing here reaches the browser. <code>interface Props</code> types the props and <code>Astro.props</code> reads them. You will also use <code>Astro.cookies</code>, <code>Astro.request</code>, <code>Astro.url</code>, <code>Astro.params</code> and <code>Astro.redirect()</code> a lot.</p>
+      <p><span class="who">Template</span><code>{}</code> holds expressions. Conditionals use <code>&amp;&amp;</code> or ternaries, lists use <code>.map()</code>, as in JSX. The differences: write <code>class</code> instead of <code>className</code>, attributes are plain HTML, <code>class:list</code> builds class strings from arrays and objects, and there are no hooks or state because the template runs once.</p>
+      <p><span class="who">Slots</span><code>&lt;slot /&gt;</code> is Astro's version of <code>children</code>. A named slot is filled by a child carrying <code>slot="footer"</code>. Content inside the slot tag is the fallback.</p>
+      <p><span class="who">&lt;style&gt;</span>Scoped to this component automatically. Use <code>&lt;style is:global&gt;</code> or <code>:global(.x)</code> to escape the scope.</p>
+      <p><span class="who">&lt;script&gt;</span>Client JavaScript. Astro bundles it, compiles TypeScript and imports, loads it as a module, and includes it once even if the component appears ten times. Add <code>is:inline</code> to ship it exactly as written instead.</p>
+    </div>
+    <h3>Passing server data to a client script</h3>
+    <p>Render the data into the DOM, then read it in the script. A custom element is the cleanest version of this pattern.</p>
+<script type="text/plain" class="src" data-lang="astro" data-file="src/components/Greeting.astro">
+---
+const { apiBase } = Astro.props;
+---
+<my-greeting data-api={apiBase}></my-greeting>
+
+<script>
+  class MyGreeting extends HTMLElement {
+    connectedCallback() {
+      const api = this.dataset.api;
+      this.textContent = `Using ${api}`;
+    }
+  }
+  customElements.define('my-greeting', MyGreeting);
+<\/script>
+</script>
+    <div class="explain">
+      <p>The server renders a custom element with a <code>data-api</code> attribute. The bundled script defines the element once, and the browser upgrades every copy on the page, including copies that arrive later through view transitions. For one-off values you can also use <code>define:vars={{ value }}</code> on a script, which makes it inline.</p>
+    </div>
+  </section>
+
+  <!-- 04 -->
+  <section id="routing">
+    <h2><span class="num">04</span>Routing</h2>
+    <p>Routes are files in <code>src/pages/</code>. Pages can be <code>.astro</code>, <code>.md</code>, <code>.mdx</code> (with the integration) or <code>.html</code>. <code>.ts</code> and <code>.js</code> files become endpoints.</p>
+    <div class="tbl"><table>
+      <thead><tr><th>File</th><th>URL</th></tr></thead>
+      <tbody>
+        <tr><td><code>src/pages/index.astro</code></td><td><code>/</code></td></tr>
+        <tr><td><code>src/pages/about.astro</code></td><td><code>/about</code></td></tr>
+        <tr><td><code>src/pages/blog/index.astro</code></td><td><code>/blog</code></td></tr>
+        <tr><td><code>src/pages/blog/[slug].astro</code></td><td><code>/blog/hello-world</code></td></tr>
+        <tr><td><code>src/pages/docs/[...path].astro</code></td><td><code>/docs/a/b/c</code> (rest parameter)</td></tr>
+        <tr><td><code>src/pages/api/users.ts</code></td><td><code>/api/users</code> (endpoint)</td></tr>
+        <tr><td><code>src/pages/404.astro</code></td><td>Custom not-found page</td></tr>
+        <tr><td><code>src/pages/_draft.astro</code></td><td>Ignored because of the underscore</td></tr>
+      </tbody>
+    </table></div>
+    <h3>Static dynamic routes</h3>
+    <p>In static mode, the default, a dynamic route lists every path at build time with <code>getStaticPaths</code>.</p>
+<script type="text/plain" class="src" data-lang="astro" data-file="src/pages/blog/[slug].astro">
+---
+import { getCollection, render } from 'astro:content';
+import BlogLayout from '../../layouts/BlogLayout.astro';
+
+export async function getStaticPaths() {
+  const posts = await getCollection('blog', ({ data }) => !data.draft);
+  return posts.map((post) => ({
+    params: { slug: post.id },
+    props: { post },
+  }));
+}
+
+const { post } = Astro.props;
+const { Content, headings } = await render(post);
+---
+<BlogLayout title={post.data.title}>
+  <Content />
+</BlogLayout>
+</script>
+    <div class="explain">
+      <p><code>getStaticPaths</code> runs once at build and returns one object per page. <code>params</code> fills the bracketed segment; <code>props</code> goes straight to the page so you never refetch. <code>render(post)</code> turns a Markdown entry into a <code>&lt;Content /&gt;</code> component plus its heading list, which you can use for a table of contents.</p>
+      <p>Pagination is built in: return <code>paginate(posts, { pageSize: 10 })</code> from <code>getStaticPaths</code> in a <code>[page].astro</code> file, then read <code>Astro.props.page</code> for <code>data</code>, <code>url.prev</code>, <code>url.next</code> and <code>currentPage</code>.</p>
+    </div>
+    <h3>On-demand routes</h3>
+<script type="text/plain" class="src" data-lang="astro" data-file="src/pages/products/[id].astro">
+---
+export const prerender = false;
+const { id } = Astro.params;
+const product = await db.getProduct(id);
+if (!product) return Astro.redirect('/404');
+---
+<h1>{product.name}</h1>
+</script>
+    <div class="explain"><p>With an adapter installed (section 08), <code>prerender = false</code> renders the page per request. There is no <code>getStaticPaths</code>; you read <code>Astro.params</code> directly and can return a redirect or a <code>Response</code> from the frontmatter.</p></div>
+    <h3>Endpoints</h3>
+<script type="text/plain" class="src" data-lang="ts" data-file="src/pages/api/search.ts">
+import type { APIRoute } from 'astro';
+
+export const prerender = false;
+
+export const GET: APIRoute = async ({ url }) => {
+  const q = url.searchParams.get('q') ?? '';
+  return Response.json({ query: q, results: [] });
+};
+
+export const POST: APIRoute = async ({ request }) => {
+  const body = await request.json();
+  return new Response(JSON.stringify({ ok: true, body }), {
+    status: 201,
+    headers: { 'Content-Type': 'application/json' },
+  });
+};
+</script>
+    <div class="explain"><p>Each exported HTTP method returns a standard <code>Response</code>. The context gives you <code>params</code>, <code>request</code>, <code>url</code>, <code>cookies</code>, <code>locals</code> and <code>redirect</code>. Leave out <code>prerender = false</code> and the endpoint runs once at build and writes a file, which is how <code>rss.xml</code> and JSON feeds are generated. Permanent redirects belong in config: <code>redirects: { '/old': '/new' }</code>.</p></div>
+  </section>
+
+  <!-- 05 -->
+  <section id="layouts">
+    <h2><span class="num">05</span>Layouts and styling</h2>
+    <p>A layout is an ordinary component that renders the whole HTML document and exposes a slot for the page.</p>
+<script type="text/plain" class="src" data-lang="astro" data-file="src/layouts/BaseLayout.astro">
+---
+import '../styles/global.css';
+import Header from '../components/Header.astro';
+import Footer from '../components/Footer.astro';
+import { ClientRouter } from 'astro:transitions';
+
+interface Props {
+  title: string;
+  description?: string;
+}
+
+const { title, description = 'My Astro site' } = Astro.props;
+const canonical = new URL(Astro.url.pathname, Astro.site);
+---
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>{title}</title>
+    <meta name="description" content={description} />
+    <link rel="canonical" href={canonical} />
+    <link rel="icon" href="/favicon.svg" />
+    <ClientRouter />
+    <slot name="head" />
+  </head>
+  <body>
+    <Header />
+    <main><slot /></main>
+    <Footer />
+  </body>
+</html>
+</script>
+    <div class="explain">
+      <p>Importing <code>global.css</code> in the layout applies it to every page that uses the layout. <code>Astro.site</code> comes from the <code>site</code> config option and is needed for canonical URLs, sitemaps and RSS. <code>&lt;ClientRouter /&gt;</code> is optional and turns on view transitions. The named <code>head</code> slot lets a page add its own meta tags:</p>
+    </div>
+<script type="text/plain" class="src" data-lang="astro" data-file="src/pages/about.astro">
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+---
+<BaseLayout title="About">
+  <meta slot="head" property="og:title" content="About" />
+  <h1>About us</h1>
+</BaseLayout>
+</script>
+    <div class="tbl"><table>
+      <thead><tr><th>Approach</th><th>How</th><th>Use for</th></tr></thead>
+      <tbody>
+        <tr><td>Scoped styles</td><td><code>&lt;style&gt;</code> in any <code>.astro</code> file</td><td>The default for component styles</td></tr>
+        <tr><td>Global CSS</td><td><code>import '../styles/global.css'</code> in a layout</td><td>Resets, tokens, typography</td></tr>
+        <tr><td>Props into CSS</td><td><code>&lt;style define:vars={{ color }}&gt;</code></td><td>Server values as CSS variables</td></tr>
+        <tr><td>Tailwind</td><td><code>npx astro add tailwind</code></td><td>Utility-first styling. I believe it now wires up Tailwind v4 through its Vite plugin; confirm after install.</td></tr>
+        <tr><td>Sass or Less</td><td>Install the preprocessor, then <code>&lt;style lang="scss"&gt;</code></td><td>Existing Sass codebases</td></tr>
+        <tr><td>CSS Modules</td><td><code>import s from './x.module.css'</code></td><td>Mostly inside React islands</td></tr>
+      </tbody>
+    </table></div>
+    <div class="note"><span class="tag">Gotcha</span><p>Scoped styles do not reach into child components. Style the child in its own file, pass a <code>class</code> prop through, or use <code>:global()</code> in the parent.</p></div>
+  </section>
+
+  <!-- 06 -->
+  <section id="islands">
+    <h2><span class="num">06</span>Islands and client directives</h2>
+    <p>A framework component with no directive renders to static HTML and ships nothing. Add a <code>client:*</code> directive and it becomes an island: Astro sends its HTML plus the code to hydrate it, and each island hydrates on its own.</p>
+<script type="text/plain" class="src" data-lang="astro" data-file="src/pages/index.astro">
+---
+import Counter from '../components/Counter.tsx';
+import SearchBox from '../components/SearchBox.tsx';
+import Comments from '../components/Comments.tsx';
+import MobileNav from '../components/MobileNav.tsx';
+import MapView from '../components/MapView.tsx';
+---
+<Counter initial={5} />
+<SearchBox client:load />
+<Counter client:idle initial={0} />
+<Comments client:visible postId="42" />
+<MobileNav client:media="(max-width: 768px)" />
+<MapView client:only="react" />
+</script>
+    <div class="tbl"><table>
+      <thead><tr><th>Directive</th><th>Hydrates when</th><th>Use for</th></tr></thead>
+      <tbody>
+        <tr><td>none</td><td>Never</td><td>Anything that only displays data</td></tr>
+        <tr><td><code>client:load</code></td><td>Right away</td><td>Above-the-fold UI that must work at once</td></tr>
+        <tr><td><code>client:idle</code></td><td>Browser is idle</td><td>Lower-priority widgets</td></tr>
+        <tr><td><code>client:visible</code></td><td>Scrolled into view</td><td>Comments, charts, footers</td></tr>
+        <tr><td><code>client:media="…"</code></td><td>A media query matches</td><td>Mobile-only menus</td></tr>
+        <tr><td><code>client:only="react"</code></td><td>Client only, no server render</td><td>Code that touches <code>window</code> or browser-only libraries</td></tr>
+      </tbody>
+    </table></div>
+    <div class="explain">
+      <p><span class="who">Props must serialize</span>Strings, numbers, booleans, arrays, plain objects, <code>Date</code>, <code>Map</code>, <code>Set</code>, <code>URL</code> and <code>RegExp</code> cross the boundary. Functions do not, so an <code>.astro</code> parent cannot pass an <code>onClick</code>. Keep event handling inside the island.</p>
+      <p><span class="who">Children</span>Children passed to an island are rendered on the server and arrive as static HTML (<code>children</code> in React). Static content can sit inside an interactive shell.</p>
+      <p><span class="who">No shared context</span>Each island is its own React root, so context providers do not span islands. Share state with a small store such as Nano Stores, custom DOM events, or the URL.</p>
+    </div>
+    <div class="compare">
+      <div><div class="label">src/stores/cart.ts</div>
+<script type="text/plain" class="src" data-lang="ts" data-file="store">
+import { atom } from 'nanostores';
+
+export const cartCount = atom(0);
+</script>
+      </div>
+      <div><div class="label">src/components/CartBadge.tsx</div>
+<script type="text/plain" class="src" data-lang="tsx" data-file="island">
+import { useStore } from '@nanostores/react';
+import { cartCount } from '../stores/cart';
+
+export default function CartBadge() {
+  const count = useStore(cartCount);
+  return <span>{count}</span>;
+}
+</script>
+      </div>
+    </div>
+    <div class="explain"><p>The store exports one atom any island can import. <code>useStore</code> subscribes the badge, so when another island calls <code>cartCount.set(3)</code> the badge updates, even though the two islands are separate React roots. A vanilla <code>&lt;script&gt;</code> can import the same atom and call <code>.subscribe()</code>.</p></div>
+  </section>
+
+  <!-- 07 -->
+  <section id="content">
+    <h2><span class="num">07</span>Content collections</h2>
+    <p>Collections give you typed, validated content from Markdown, MDX, JSON, YAML or any remote source. Define them once with a loader and a Zod schema.</p>
+<script type="text/plain" class="src" data-lang="ts" data-file="src/content.config.ts">
+import { defineCollection, reference } from 'astro:content';
+import { glob, file } from 'astro/loaders';
+import { z } from 'astro/zod';
+
+const blog = defineCollection({
+  loader: glob({ pattern: '**/*.{md,mdx}', base: './src/content/blog' }),
+  schema: ({ image }) =>
+    z.object({
+      title: z.string(),
+      description: z.string(),
+      pubDate: z.coerce.date(),
+      updatedDate: z.coerce.date().optional(),
+      cover: image().optional(),
+      tags: z.array(z.string()).default([]),
+      draft: z.boolean().default(false),
+      author: reference('authors'),
+    }),
+});
+
+const authors = defineCollection({
+  loader: file('src/content/authors.json'),
+  schema: z.object({
+    name: z.string(),
+    url: z.string().url().optional(),
+  }),
+});
+
+const releases = defineCollection({
+  loader: async () => {
+    const res = await fetch('https://api.github.com/repos/withastro/astro/releases');
+    const data = await res.json();
+    return data.map((r: any) => ({ id: String(r.id), name: r.name, date: r.published_at }));
+  },
+  schema: z.object({ name: z.string(), date: z.coerce.date() }),
+});
+
+export const collections = { blog, authors, releases };
+</script>
+    <div class="explain">
+      <p><span class="who">glob</span>Reads a folder of files; each file path becomes the entry <code>id</code>.</p>
+      <p><span class="who">file</span>Reads one JSON or YAML file holding an array or a keyed object.</p>
+      <p><span class="who">inline loader</span>Any async function returning objects with an <code>id</code>. It runs at build, so remote data becomes static content.</p>
+      <p><span class="who">schema</span>Validates at build and generates types. <code>image()</code> validates and optimizes local images; <code>reference()</code> links to entries in another collection. In Astro 6, import <code>z</code> from <code>astro/zod</code>.</p>
+    </div>
+<script type="text/plain" class="src" data-lang="md" data-file="src/content/blog/first-post.md">
+---
+title: First post
+description: Hello from Astro
+pubDate: 2026-10-17
+tags: [astro, intro]
+author: pranjal
+---
+
+# Hello
+
+Regular Markdown here.
+</script>
+<script type="text/plain" class="src" data-lang="astro" data-file="src/pages/blog/index.astro">
+---
+import { getCollection, getEntry } from 'astro:content';
+
+const posts = (await getCollection('blog', ({ data }) => (import.meta.env.PROD ? !data.draft : true)))
+  .sort((a, b) => b.data.pubDate.valueOf() - a.data.pubDate.valueOf());
+
+const author = await getEntry(posts[0].data.author);
+---
+<ul>
+  {posts.map((p) => (
+    <li><a href={`/blog/${p.id}/`}>{p.data.title}</a> by {author?.data.name}</li>
+  ))}
+</ul>
+</script>
+    <div class="explain">
+      <p><code>getCollection</code> returns every entry, with an optional filter; here drafts show in dev and disappear in production. <code>getEntry</code> resolves a reference to the full entry. The body is rendered with <code>render(entry)</code>, shown in section 04.</p>
+      <p><span class="who">Live collections</span>Stable in Astro 6. They fetch at request time instead of build time, for content that must change without a rebuild. Define them with <code>defineLiveCollection</code> (I believe in <code>src/live.config.ts</code>) and read them with <code>getLiveCollection</code> and <code>getLiveEntry</code>, which return <code>{ entry, error }</code>. They need on-demand routes. Prefer build-time collections unless freshness matters.</p>
+    </div>
+  </section>
+
+  <!-- 08 -->
+  <section id="server">
+    <h2><span class="num">08</span>Server features</h2>
+    <p>Every route is prerendered by default. To render routes per request, add an adapter for your host and opt those routes out of prerendering.</p>
+<script type="text/plain" class="src" data-lang="js" data-file="astro.config.mjs">
+import { defineConfig } from 'astro/config';
+import react from '@astrojs/react';
+import node from '@astrojs/node';
+
+export default defineConfig({
+  site: 'https://example.com',
+  output: 'static',
+  adapter: node({ mode: 'standalone' }),
+  integrations: [react()],
+});
+</script>
+    <div class="tbl"><table>
+      <thead><tr><th>Setup</th><th>Behaviour</th></tr></thead>
+      <tbody>
+        <tr><td><code>output: 'static'</code> + adapter</td><td>Everything prerendered; pages with <code>prerender = false</code> render on demand</td></tr>
+        <tr><td><code>output: 'server'</code> + adapter</td><td>Everything on demand; pages with <code>prerender = true</code> are prerendered</td></tr>
+        <tr><td>No adapter</td><td>Pure static site; <code>prerender = false</code> is an error</td></tr>
+      </tbody>
+    </table></div>
+    <p>Official adapters: <code>@astrojs/node</code>, <code>@astrojs/vercel</code>, <code>@astrojs/netlify</code>, <code>@astrojs/cloudflare</code>. Install with <code>npx astro add &lt;name&gt;</code>.</p>
+
+    <h3>Server islands</h3>
+<script type="text/plain" class="src" data-lang="astro" data-file="src/pages/index.astro">
+---
+import UserMenu from '../components/UserMenu.astro';
+---
+<UserMenu server:defer>
+  <span slot="fallback">Loading account…</span>
+</UserMenu>
+</script>
+    <div class="explain"><p><code>server:defer</code> lets a static, cacheable page hand one personalised piece to the server. The page loads at once with the fallback, then <code>UserMenu</code> is rendered separately (it can read cookies and query a database) and swapped in. Needs an adapter.</p></div>
+
+    <h3>Actions</h3>
+    <div class="compare">
+      <div><div class="label">src/actions/index.ts</div>
+<script type="text/plain" class="src" data-lang="ts" data-file="actions">
+import { defineAction, ActionError } from 'astro:actions';
+import { z } from 'astro/zod';
+
+export const server = {
+  subscribe: defineAction({
+    accept: 'form',
+    input: z.object({ email: z.string().email() }),
+    handler: async ({ email }, context) => {
+      if (email.endsWith('@spam.com')) {
+        throw new ActionError({ code: 'BAD_REQUEST', message: 'Nope' });
+      }
+      return { ok: true, email };
+    },
+  }),
+};
+</script>
+      </div>
+      <div><div class="label">src/pages/subscribe.astro</div>
+<script type="text/plain" class="src" data-lang="astro" data-file="page">
+---
+import { actions } from 'astro:actions';
+export const prerender = false;
+const result = Astro.getActionResult(actions.subscribe);
+---
+<form method="POST" action={actions.subscribe}>
+  <input name="email" type="email" required />
+  <button>Subscribe</button>
+</form>
+{result?.data && <p>Subscribed {result.data.email}</p>}
+{result?.error && <p>{result.error.message}</p>}
+</script>
+      </div>
+    </div>
+    <div class="explain"><p>Every key on <code>server</code> becomes an action. <code>accept: 'form'</code> parses <code>FormData</code> and validates it before the handler runs; <code>context</code> holds cookies, locals and the request. The page posts the form straight to the action with no client JavaScript and reads the result on re-render. From a React island you call <code>await actions.subscribe(formData)</code> and get <code>{ data, error }</code>.</p></div>
+
+    <h3>Middleware</h3>
+<script type="text/plain" class="src" data-lang="ts" data-file="src/middleware.ts">
+import { defineMiddleware, sequence } from 'astro:middleware';
+
+const auth = defineMiddleware(async (context, next) => {
+  const token = context.cookies.get('session')?.value;
+  context.locals.user = token ? await verify(token) : null;
+  if (context.url.pathname.startsWith('/admin') && !context.locals.user) {
+    return context.redirect('/login');
+  }
+  return next();
+});
+
+const timing = defineMiddleware(async (_context, next) => {
+  const start = Date.now();
+  const response = await next();
+  response.headers.set('Server-Timing', `total;dur=${Date.now() - start}`);
+  return response;
+});
+
+export const onRequest = sequence(auth, timing);
+</script>
+    <div class="explain"><p><code>auth</code> reads the session cookie, stores the user on <code>locals</code> (read it as <code>Astro.locals.user</code> in any page), and redirects anonymous visitors away from <code>/admin</code>. <code>timing</code> wraps <code>next()</code> to add a header after the page renders. <code>sequence</code> runs them in order. Type <code>locals</code> by declaring <code>App.Locals</code> in <code>src/env.d.ts</code>. In Astro 6, middleware also runs during the build for prerendered pages, where there is no real request, so guard cookie and header reads.</p></div>
+
+    <h3>Environment variables</h3>
+<script type="text/plain" class="src" data-lang="js" data-file="astro.config.mjs (env schema)">
+import { defineConfig, envField } from 'astro/config';
+
+export default defineConfig({
+  env: {
+    schema: {
+      API_SECRET: envField.string({ context: 'server', access: 'secret' }),
+      PUBLIC_API_URL: envField.string({ context: 'client', access: 'public', default: 'https://api.example.com' }),
+    },
+  },
+});
+</script>
+    <div class="explain"><p>Any <code>.env</code> value is available on the server as <code>import.meta.env.NAME</code>; only names starting with <code>PUBLIC_</code> reach client code. The schema above adds validation and types: import secrets from <code>astro:env/server</code> and public values from <code>astro:env/client</code>.</p></div>
+  </section>
+
+  <!-- 09 -->
+  <section id="vanilla">
+    <h2><span class="num">09</span>Vanilla HTML/CSS/JS to Astro</h2>
+    <p>Any valid HTML is valid Astro. Rename <code>index.html</code> to <code>src/pages/index.astro</code> and it works. Everything after that is refactoring for reuse.</p>
+    <div class="tbl"><table>
+      <thead><tr><th>Vanilla site</th><th>Astro equivalent</th></tr></thead>
+      <tbody>
+        <tr><td><code>about.html</code>, <code>contact.html</code></td><td><code>src/pages/about.astro</code>, <code>src/pages/contact.astro</code></td></tr>
+        <tr><td>Header and footer pasted into every file</td><td><code>src/layouts/BaseLayout.astro</code> with a slot</td></tr>
+        <tr><td>Repeated card markup</td><td><code>src/components/Card.astro</code> with props</td></tr>
+        <tr><td><code>&lt;link rel="stylesheet" href="style.css"&gt;</code></td><td>Import in the layout, or scoped <code>&lt;style&gt;</code></td></tr>
+        <tr><td><code>&lt;script src="main.js"&gt;</code></td><td><code>&lt;script&gt;</code> in the component that needs it</td></tr>
+        <tr><td><code>images/</code></td><td><code>src/assets/</code> to optimize, <code>public/</code> to leave untouched</td></tr>
+        <tr><td>Hand-maintained list of posts</td><td>A content collection and <code>getCollection</code></td></tr>
+        <tr><td>jQuery-style DOM wiring</td><td><code>&lt;script&gt;</code> plus a custom element</td></tr>
+      </tbody>
+    </table></div>
+    <ol class="steps">
+      <li><div><h3 style="margin-top:0">Move static files</h3><p>Put <code>favicon.ico</code>, <code>robots.txt</code> and anything referenced by absolute URL into <code>public/</code>. Paths like <code>/img/logo.png</code> keep working.</p></div></li>
+      <li><div><h3 style="margin-top:0">Extract the shell</h3><p>Move <code>&lt;html&gt;</code>, <code>&lt;head&gt;</code> and the nav into <code>BaseLayout.astro</code> (section 05). Each page shrinks to its own content.</p></div></li>
+    </ol>
+    <div class="compare">
+      <div><div class="label">Before · about.html</div>
+<script type="text/plain" class="src" data-lang="html" data-file="about.html">
+<!doctype html>
+<html>
+<head>
+  <title>About</title>
+  <link rel="stylesheet" href="/style.css">
+</head>
+<body>
+  <nav><a href="/">Home</a> <a href="/about.html">About</a></nav>
+  <h1>About</h1>
+  <p>We make things.</p>
+  <script src="/main.js"><\/script>
+</body>
+</html>
+</script>
+      </div>
+      <div><div class="label after">After · src/pages/about.astro</div>
+<script type="text/plain" class="src" data-lang="astro" data-file="about.astro">
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+---
+<BaseLayout title="About">
+  <h1>About</h1>
+  <p>We make things.</p>
+</BaseLayout>
+</script>
+      </div>
+    </div>
+    <p>Links change from <code>/about.html</code> to <code>/about</code>.</p>
+    <ol class="steps" start="3" style="counter-reset: step 2">
+      <li><div><h3 style="margin-top:0">Convert scripts per component</h3><p>A global <code>main.js</code> still works if the layout imports it inside a <code>&lt;script&gt;</code>. Better, move each behaviour next to its markup so it ships only on pages that use it.</p></div></li>
+    </ol>
+<script type="text/plain" class="src" data-lang="astro" data-file="src/components/Accordion.astro">
+---
+interface Props { items: string[] }
+const { items } = Astro.props;
+---
+<div class="accordion">
+  {items.map((item) => (
+    <details><summary>{item}</summary><slot /></details>
+  ))}
+</div>
+
+<script>
+  document.querySelectorAll('.accordion details').forEach((d) => {
+    d.addEventListener('toggle', () => {
+      if (!d.open) return;
+      d.parentElement?.querySelectorAll('details').forEach((o) => {
+        if (o !== d) o.open = false;
+      });
+    });
+  });
+<\/script>
+</script>
+    <div class="explain"><p>The frontmatter takes a typed list and the template maps it to native <code>&lt;details&gt;</code> elements. The script is bundled once per page, even with several accordions, and closes the other panels when one opens.</p></div>
+    <ol class="steps" style="counter-reset: step 3">
+      <li><div><h3 style="margin-top:0">Plan for view transitions</h3><p>If you add <code>&lt;ClientRouter /&gt;</code> later, scripts that run once on load do not re-run after client navigation. Wrap setup in <code>document.addEventListener('astro:page-load', () =&gt; { … })</code>, or use custom elements, which upgrade automatically.</p></div></li>
+      <li><div><h3 style="margin-top:0">Turn repetition into content</h3><p>Ten near-identical project pages become one collection and one <code>[slug].astro</code> route.</p></div></li>
+    </ol>
+  </section>
+
+  <!-- 10 -->
+  <section id="react">
+    <h2><span class="num">10</span>React (Vite or CRA) to Astro</h2>
+    <p>The shift: in a React SPA everything is client-side by default and you fetch in effects. In Astro everything is server-rendered by default, data loads in frontmatter, and React stays only where there is real interaction.</p>
+    <div class="tbl"><table>
+      <thead><tr><th>React SPA</th><th>Astro</th></tr></thead>
+      <tbody>
+        <tr><td>React Router <code>&lt;Routes&gt;</code></td><td>Files in <code>src/pages/</code></td></tr>
+        <tr><td><code>useParams()</code></td><td><code>Astro.params</code> or <code>getStaticPaths</code></td></tr>
+        <tr><td><code>useEffect</code> + <code>fetch</code> for page data</td><td><code>await fetch()</code> in frontmatter</td></tr>
+        <tr><td><code>index.html</code> + <code>&lt;App /&gt;</code> shell</td><td>A layout component</td></tr>
+        <tr><td>react-helmet for titles and meta</td><td>Props on the layout, or a named head slot</td></tr>
+        <tr><td><code>&lt;Link to="/x"&gt;</code></td><td><code>&lt;a href="/x"&gt;</code>, plus <code>&lt;ClientRouter /&gt;</code> for SPA-like transitions</td></tr>
+        <tr><td>Context provider at the root</td><td>Nano Stores, or keep the provider inside one island</td></tr>
+        <tr><td><code>import.meta.env.VITE_X</code> / <code>REACT_APP_X</code></td><td><code>import.meta.env.PUBLIC_X</code> or <code>astro:env/client</code></td></tr>
+        <tr><td>Static presentational components</td><td>Rewrite as <code>.astro</code>, or render as React with no directive</td></tr>
+        <tr><td>Stateful widgets</td><td>Keep as <code>.tsx</code> with <code>client:*</code></td></tr>
+      </tbody>
+    </table></div>
+
+    <h3>Path A: incremental, keep the SPA running</h3>
+    <p>Install React with <code>npx astro add react</code>, copy <code>src/</code> components across, and mount the whole app as one client-only island behind a catch-all route. Then peel off pages into real Astro routes one at a time.</p>
+<script type="text/plain" class="src" data-lang="astro" data-file="src/pages/app/[...path].astro">
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import App from '../../react/App.tsx';
+export const prerender = false;
+---
+<BaseLayout title="App">
+  <App client:only="react" />
+</BaseLayout>
+</script>
+    <div class="explain"><p>The rest parameter sends every <code>/app/*</code> URL to this one page, and <code>client:only</code> skips server rendering so browser-only code inside the app keeps working. Set React Router's <code>basename</code> to <code>/app</code>. This needs an adapter because the paths are unknown at build. On a pure static host, use a single <code>app.astro</code> page and a host rewrite of <code>/app/*</code> to it instead.</p></div>
+
+    <h3>Path B: convert a page properly</h3>
+    <div class="compare">
+      <div><div class="label">Before · Posts.tsx (SPA)</div>
+<script type="text/plain" class="src" data-lang="tsx" data-file="Posts.tsx">
+import { useEffect, useState } from 'react';
+import { Link } from 'react-router-dom';
+import LikeButton from './LikeButton';
+
+export default function Posts() {
+  const [posts, setPosts] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    fetch('/api/posts')
+      .then((r) => r.json())
+      .then((data) => {
+        setPosts(data);
+        setLoading(false);
+      });
+  }, []);
+
+  if (loading) return <p>Loading…</p>;
+
+  return (
+    <ul>
+      {posts.map((p) => (
+        <li key={p.id}>
+          <Link to={`/posts/${p.slug}`}>{p.title}</Link>
+          <LikeButton postId={p.id} />
+        </li>
+      ))}
+    </ul>
+  );
+}
+</script>
+      </div>
+      <div><div class="label after">After · src/pages/posts/index.astro</div>
+<script type="text/plain" class="src" data-lang="astro" data-file="posts/index.astro">
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import LikeButton from '../../components/LikeButton.tsx';
+
+const res = await fetch(`${import.meta.env.API_URL}/posts`);
+const posts = await res.json();
+---
+<BaseLayout title="Posts">
+  <ul>
+    {posts.map((p) => (
+      <li>
+        <a href={`/posts/${p.slug}`}>{p.title}</a>
+        <LikeButton client:visible postId={p.id} />
+      </li>
+    ))}
+  </ul>
+</BaseLayout>
+</script>
+      </div>
+    </div>
+    <div class="explain"><p>The loading state, the two pieces of state and the effect all disappear: the list is fetched on the server and arrives as finished HTML. <code>Link</code> becomes a plain anchor. <code>LikeButton</code> is untouched React code that now hydrates only when scrolled into view, so the rest of the list ships no JavaScript. <code>API_URL</code> has no <code>PUBLIC_</code> prefix because it is only read on the server.</p></div>
+
+    <h3>Converting a presentational component</h3>
+    <div class="compare">
+      <div><div class="label">Before · Badge.tsx</div>
+<script type="text/plain" class="src" data-lang="tsx" data-file="Badge.tsx">
+type Props = { tone?: 'info' | 'warn'; children: React.ReactNode };
+
+export default function Badge({ tone = 'info', children }: Props) {
+  return <span className={`badge badge-${tone}`}>{children}</span>;
+}
+</script>
+      </div>
+      <div><div class="label after">After · Badge.astro</div>
+<script type="text/plain" class="src" data-lang="astro" data-file="Badge.astro">
+---
+interface Props { tone?: 'info' | 'warn' }
+const { tone = 'info' } = Astro.props;
+---
+<span class:list={['badge', `badge-${tone}`]}><slot /></span>
+</script>
+      </div>
+    </div>
+    <div class="explain"><p><code>className</code> becomes <code>class</code> (here <code>class:list</code>), <code>children</code> becomes <code>&lt;slot /&gt;</code>, and the types move into <code>interface Props</code>. Only convert components with no state or handlers; anything with <code>useState</code> stays React.</p></div>
+    <div class="note"><span class="tag">React gotchas</span><p>Hooks only run inside islands. Code that touches <code>window</code> at import time breaks server rendering; move it into an effect or use <code>client:only</code>. Global CSS imported inside a React component still works and is bundled by Vite.</p></div>
+  </section>
+
+  <!-- 11 -->
+  <section id="boilerplate">
+    <h2><span class="num">11</span>Full boilerplate</h2>
+    <p>A complete starter: layout with SEO, a typed blog collection, RSS, sitemap, a vanilla theme toggle, one React island, a 404 page and a health endpoint. Pick a file to read it. Create the project with <code>npm create astro@latest</code> (minimal template), then run <code>npx astro add react mdx sitemap</code> and <code>npm i @astrojs/rss</code> so the package versions come from your install.</p>
+    <div class="explorer">
+      <div class="tree" role="tablist" aria-label="Boilerplate files" id="tree"></div>
+      <div class="viewer" id="viewer"></div>
+    </div>
+
+    <div id="bp" hidden>
+<script type="text/plain" class="bp" data-file="astro.config.mjs" data-lang="js" data-why="Site URL powers canonical links, sitemap and RSS. Prefetch makes links load on hover.">
+import { defineConfig } from 'astro/config';
+import react from '@astrojs/react';
+import mdx from '@astrojs/mdx';
+import sitemap from '@astrojs/sitemap';
+
+export default defineConfig({
+  site: 'https://example.com',
+  integrations: [react(), mdx(), sitemap()],
+  prefetch: true,
+});
+</script>
+<script type="text/plain" class="bp" data-file="package.json" data-lang="json" data-why="Scripts only matter here; let npm create and astro add write the dependency versions.">
+{
+  "name": "astro-starter",
+  "type": "module",
+  "private": true,
+  "scripts": {
+    "dev": "astro dev",
+    "build": "astro check && astro build",
+    "preview": "astro preview",
+    "astro": "astro"
+  }
+}
+</script>
+<script type="text/plain" class="bp" data-file="tsconfig.json" data-lang="json" data-why="Strict preset plus the generated types folder, so astro:content and friends are typed.">
+{
+  "extends": "astro/tsconfigs/strict",
+  "include": [".astro/types.d.ts", "**/*"],
+  "exclude": ["dist"],
+  "compilerOptions": {
+    "jsx": "react-jsx",
+    "jsxImportSource": "react",
+    "baseUrl": ".",
+    "paths": { "@/*": ["src/*"] }
+  }
+}
+</script>
+<script type="text/plain" class="bp" data-file=".env.example" data-lang="text" data-why="PUBLIC_ values reach the browser; everything else stays on the server.">
+PUBLIC_SITE_NAME=Astro Starter
+API_SECRET=change-me
+</script>
+<script type="text/plain" class="bp" data-file="public/robots.txt" data-lang="text" data-why="The sitemap integration writes sitemap-index.xml at build.">
+User-agent: *
+Allow: /
+Sitemap: https://example.com/sitemap-index.xml
+</script>
+<script type="text/plain" class="bp" data-file="src/styles/global.css" data-lang="css" data-why="Tokens and theme switching via a data-theme attribute set by ThemeToggle.">
+:root {
+  --bg: #ffffff;
+  --fg: #16181d;
+  --muted: #5d6472;
+  --accent: #c2410c;
+  --max: 46rem;
+  color-scheme: light;
+}
+:root[data-theme='dark'] {
+  --bg: #0f1115;
+  --fg: #e7e9ee;
+  --muted: #9aa2b1;
+  --accent: #ff7a3d;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--fg);
+  font: 17px/1.65 system-ui, sans-serif;
+}
+main { max-width: var(--max); margin: 0 auto; padding: 2rem 1rem 4rem; }
+a { color: var(--accent); }
+img { max-width: 100%; height: auto; }
+</script>
+<script type="text/plain" class="bp" data-file="src/components/SEO.astro" data-lang="astro" data-why="One place for title, description, canonical and Open Graph tags.">
+---
+interface Props {
+  title: string;
+  description: string;
+  image?: string;
+}
+
+const { title, description, image = '/og-default.png' } = Astro.props;
+const siteName = import.meta.env.PUBLIC_SITE_NAME;
+const canonical = new URL(Astro.url.pathname, Astro.site);
+const ogImage = new URL(image, Astro.site);
+---
+<title>{title === siteName ? title : `${title} · ${siteName}`}</title>
+<meta name="description" content={description} />
+<link rel="canonical" href={canonical} />
+<meta property="og:type" content="website" />
+<meta property="og:title" content={title} />
+<meta property="og:description" content={description} />
+<meta property="og:url" content={canonical} />
+<meta property="og:image" content={ogImage} />
+<meta name="twitter:card" content="summary_large_image" />
+<link rel="sitemap" href="/sitemap-index.xml" />
+<link rel="alternate" type="application/rss+xml" title={siteName} href="/rss.xml" />
+</script>
+<script type="text/plain" class="bp" data-file="src/layouts/BaseLayout.astro" data-lang="astro" data-why="The is:inline script sets the theme before paint so dark mode never flashes.">
+---
+import '../styles/global.css';
+import SEO from '../components/SEO.astro';
+import Header from '../components/Header.astro';
+import { ClientRouter } from 'astro:transitions';
+
+interface Props {
+  title: string;
+  description?: string;
+  image?: string;
+}
+
+const { title, description = 'An Astro starter', image } = Astro.props;
+---
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <SEO title={title} description={description} image={image} />
+    <ClientRouter />
+    <script is:inline>
+      const t = localStorage.getItem('theme') ?? (matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+      document.documentElement.dataset.theme = t;
+    <\/script>
+  </head>
+  <body>
+    <Header />
+    <main><slot /></main>
+  </body>
+</html>
+</script>
+<script type="text/plain" class="bp" data-file="src/components/Header.astro" data-lang="astro" data-why="aria-current marks the active link using the current URL.">
+---
+import ThemeToggle from './ThemeToggle.astro';
+
+const links = [
+  { href: '/', label: 'Home' },
+  { href: '/blog/', label: 'Blog' },
+];
+const path = Astro.url.pathname;
+---
+<header>
+  <nav>
+    {links.map((l) => (
+      <a href={l.href} aria-current={path === l.href ? 'page' : undefined}>{l.label}</a>
+    ))}
+  </nav>
+  <ThemeToggle />
+</header>
+
+<style>
+  header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    max-width: var(--max);
+    margin: 0 auto;
+    padding: 1rem;
+  }
+  nav { display: flex; gap: 1rem; }
+  a[aria-current='page'] { font-weight: 600; text-decoration: none; }
+</style>
+</script>
+<script type="text/plain" class="bp" data-file="src/components/ThemeToggle.astro" data-lang="astro" data-why="Vanilla island via a custom element; astro:after-swap keeps the theme across view transitions.">
+<theme-toggle>
+  <button type="button" aria-label="Toggle theme">Theme</button>
+</theme-toggle>
+
+<script>
+  class ThemeToggle extends HTMLElement {
+    connectedCallback() {
+      this.querySelector('button')?.addEventListener('click', () => {
+        const next = document.documentElement.dataset.theme === 'dark' ? 'light' : 'dark';
+        document.documentElement.dataset.theme = next;
+        localStorage.setItem('theme', next);
+      });
+    }
+  }
+  customElements.define('theme-toggle', ThemeToggle);
+
+  document.addEventListener('astro:after-swap', () => {
+    const t = localStorage.getItem('theme');
+    if (t) document.documentElement.dataset.theme = t;
+  });
+<\/script>
+</script>
+<script type="text/plain" class="bp" data-file="src/components/Counter.tsx" data-lang="tsx" data-why="An ordinary React component. It only becomes interactive where a page adds client:*.">
+import { useState } from 'react';
+
+export default function Counter({ start = 0 }: { start?: number }) {
+  const [n, setN] = useState(start);
+  return (
+    <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+      <button onClick={() => setN(n - 1)}>-</button>
+      <output>{n}</output>
+      <button onClick={() => setN(n + 1)}>+</button>
+    </div>
+  );
+}
+</script>
+<script type="text/plain" class="bp" data-file="src/content.config.ts" data-lang="ts" data-why="Typed blog collection; z comes from astro/zod in Astro 6.">
+import { defineCollection } from 'astro:content';
+import { glob } from 'astro/loaders';
+import { z } from 'astro/zod';
+
+const blog = defineCollection({
+  loader: glob({ pattern: '**/*.{md,mdx}', base: './src/content/blog' }),
+  schema: ({ image }) =>
+    z.object({
+      title: z.string(),
+      description: z.string(),
+      pubDate: z.coerce.date(),
+      cover: image().optional(),
+      tags: z.array(z.string()).default([]),
+      draft: z.boolean().default(false),
+    }),
+});
+
+export const collections = { blog };
+</script>
+<script type="text/plain" class="bp" data-file="src/content/blog/hello-astro.md" data-lang="md" data-why="The file name becomes the post id and the URL slug.">
+---
+title: Hello, Astro
+description: The first post in the starter.
+pubDate: 2026-10-17
+tags: [astro]
+---
+
+This post is plain Markdown, validated by the schema in content.config.ts.
+</script>
+<script type="text/plain" class="bp" data-file="src/lib/posts.ts" data-lang="ts" data-why="One helper so every page sorts and filters posts the same way.">
+import { getCollection } from 'astro:content';
+
+export async function getPosts() {
+  const posts = await getCollection('blog', ({ data }) => (import.meta.env.PROD ? !data.draft : true));
+  return posts.sort((a, b) => b.data.pubDate.valueOf() - a.data.pubDate.valueOf());
+}
+</script>
+<script type="text/plain" class="bp" data-file="src/pages/index.astro" data-lang="astro" data-why="Static HTML except the Counter, which hydrates when it scrolls into view.">
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+import Counter from '../components/Counter.tsx';
+import { getPosts } from '../lib/posts';
+
+const latest = (await getPosts()).slice(0, 3);
+---
+<BaseLayout title={import.meta.env.PUBLIC_SITE_NAME} description="Home of the Astro starter">
+  <h1>Astro Starter</h1>
+  <p>Static by default, interactive where it counts.</p>
+  <Counter client:visible start={3} />
+
+  <h2>Latest posts</h2>
+  <ul>
+    {latest.map((p) => (
+      <li><a href={`/blog/${p.id}/`}>{p.data.title}</a></li>
+    ))}
+  </ul>
+</BaseLayout>
+</script>
+<script type="text/plain" class="bp" data-file="src/pages/blog/index.astro" data-lang="astro" data-why="toLocaleDateString runs at build, so the date is fixed in the HTML.">
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import { getPosts } from '../../lib/posts';
+
+const posts = await getPosts();
+---
+<BaseLayout title="Blog" description="All posts">
+  <h1>Blog</h1>
+  <ul>
+    {posts.map((p) => (
+      <li>
+        <a href={`/blog/${p.id}/`}>{p.data.title}</a>
+        <time datetime={p.data.pubDate.toISOString()}>
+          {p.data.pubDate.toLocaleDateString('en-GB', { dateStyle: 'medium' })}
+        </time>
+      </li>
+    ))}
+  </ul>
+</BaseLayout>
+</script>
+<script type="text/plain" class="bp" data-file="src/pages/blog/[slug].astro" data-lang="astro" data-why="One route generates every post page at build, with an optimized cover image.">
+---
+import { render } from 'astro:content';
+import { Image } from 'astro:assets';
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import { getPosts } from '../../lib/posts';
+
+export async function getStaticPaths() {
+  const posts = await getPosts();
+  return posts.map((post) => ({ params: { slug: post.id }, props: { post } }));
+}
+
+const { post } = Astro.props;
+const { Content } = await render(post);
+---
+<BaseLayout title={post.data.title} description={post.data.description}>
+  <article>
+    {post.data.cover && <Image src={post.data.cover} alt="" width={1200} />}
+    <h1>{post.data.title}</h1>
+    <Content />
+  </article>
+</BaseLayout>
+</script>
+<script type="text/plain" class="bp" data-file="src/pages/rss.xml.ts" data-lang="ts" data-why="A prerendered endpoint: runs at build and writes rss.xml.">
+import rss from '@astrojs/rss';
+import type { APIContext } from 'astro';
+import { getPosts } from '../lib/posts';
+
+export async function GET(context: APIContext) {
+  const posts = await getPosts();
+  return rss({
+    title: import.meta.env.PUBLIC_SITE_NAME,
+    description: 'Posts from the Astro starter',
+    site: context.site!,
+    items: posts.map((p) => ({
+      title: p.data.title,
+      description: p.data.description,
+      pubDate: p.data.pubDate,
+      link: `/blog/${p.id}/`,
+    })),
+  });
+}
+</script>
+<script type="text/plain" class="bp" data-file="src/pages/api/health.json.ts" data-lang="ts" data-why="Static JSON at build. Add prerender = false and an adapter to make it live.">
+import type { APIRoute } from 'astro';
+
+export const GET: APIRoute = () => {
+  return Response.json({ ok: true, builtAt: new Date().toISOString() });
+};
+</script>
+<script type="text/plain" class="bp" data-file="src/pages/404.astro" data-lang="astro" data-why="Most hosts serve 404.html automatically for unknown paths.">
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+---
+<BaseLayout title="Not found" description="This page does not exist">
+  <h1>Page not found</h1>
+  <p><a href="/">Back to the home page</a></p>
+</BaseLayout>
+</script>
+    </div>
+  </section>
+
+  <!-- 12 -->
+  <section id="essentials">
+    <h2><span class="num">12</span>Essentials</h2>
+
+    <h3>Images</h3>
+<script type="text/plain" class="src" data-lang="astro" data-file="src/components/Hero.astro">
+---
+import { Image, Picture } from 'astro:assets';
+import hero from '../assets/hero.jpg';
+---
+<Image src={hero} alt="Mountain at dawn" width={1200} priority />
+<Picture src={hero} formats={['avif', 'webp']} alt="Mountain at dawn" />
+<Image src="https://images.example.com/a.jpg" alt="Remote" width={800} height={600} />
+</script>
+    <div class="explain"><p>Importing from <code>src/assets/</code> gives Astro the image's real size, so it can resize, convert to WebP and set width and height to stop layout shift. <code>&lt;Picture&gt;</code> outputs several formats. Remote images need explicit dimensions, and their domains must be listed in <code>image.domains</code> in config to be optimized. I am fairly sure <code>priority</code> is the current prop for eager-loading a hero image; check it if your version complains. Files in <code>public/</code> are never optimized.</p></div>
+
+    <h3>Fonts</h3>
+<script type="text/plain" class="src" data-lang="js" data-file="astro.config.mjs (fonts)">
+import { defineConfig, fontProviders } from 'astro/config';
+
+export default defineConfig({
+  fonts: [
+    { provider: fontProviders.google(), name: 'Inter', cssVariable: '--font-inter' },
+  ],
+});
+</script>
+<script type="text/plain" class="src" data-lang="astro" data-file="src/layouts/BaseLayout.astro (head)">
+---
+import { Font } from 'astro:assets';
+---
+<Font cssVariable="--font-inter" preload />
+<style is:global>
+  body { font-family: var(--font-inter), system-ui, sans-serif; }
+</style>
+</script>
+    <div class="explain"><p>The Fonts API downloads and self-hosts the font at build, generates fallbacks and exposes it as a CSS variable. Both imports are confirmed by the Astro 6 post; the exact option names inside each entry are from memory, so compare with the Fonts guide.</p></div>
+
+    <h3>View transitions</h3>
+<script type="text/plain" class="src" data-lang="astro" data-file="usage">
+---
+import { ClientRouter } from 'astro:transitions';
+---
+<head>
+  <ClientRouter />
+</head>
+
+<img src={cover} transition:name={`cover-${slug}`} />
+<audio-player transition:persist></audio-player>
+
+<script>
+  document.addEventListener('astro:page-load', () => {
+    console.log('runs on first load and after every navigation');
+  });
+<\/script>
+</script>
+    <div class="explain"><p><code>&lt;ClientRouter /&gt;</code> (formerly <code>&lt;ViewTransitions /&gt;</code>) intercepts link clicks and animates between pages. <code>transition:name</code> pairs elements across pages for morph animations; <code>transition:persist</code> keeps an element alive, such as a playing audio player. Use <code>astro:page-load</code> for setup code. Without the router, modern browsers can still do cross-document transitions with the CSS <code>@view-transition { navigation: auto; }</code> rule.</p></div>
+
+    <h3>Prefetch, Markdown and SEO</h3>
+    <div class="tbl"><table>
+      <thead><tr><th>Need</th><th>How</th></tr></thead>
+      <tbody>
+        <tr><td>Faster navigation</td><td><code>prefetch: true</code> in config; per link <code>data-astro-prefetch="viewport"</code></td></tr>
+        <tr><td>Components in Markdown</td><td><code>npx astro add mdx</code>, then import components inside <code>.mdx</code></td></tr>
+        <tr><td>Code highlighting</td><td>Shiki is built in; set <code>markdown.shikiConfig.theme</code></td></tr>
+        <tr><td>Sitemap</td><td><code>@astrojs/sitemap</code> with <code>site</code> set</td></tr>
+        <tr><td>RSS</td><td><code>@astrojs/rss</code> in an endpoint (boilerplate)</td></tr>
+        <tr><td>Glob-import files</td><td><code>import.meta.glob('./posts/*.md', { eager: true })</code>; <code>Astro.glob</code> is gone</td></tr>
+      </tbody>
+    </table></div>
+
+    <h3>Deployment</h3>
+    <div class="tbl"><table>
+      <thead><tr><th>Host</th><th>Static site</th><th>With on-demand routes</th></tr></thead>
+      <tbody>
+        <tr><td>Vercel</td><td>Import the repo; build <code>npm run build</code>, output <code>dist</code></td><td><code>npx astro add vercel</code></td></tr>
+        <tr><td>Netlify</td><td>Same build settings</td><td><code>npx astro add netlify</code></td></tr>
+        <tr><td>Cloudflare</td><td>Pages or Workers static assets</td><td><code>npx astro add cloudflare</code></td></tr>
+        <tr><td>VPS, Docker, Raspberry Pi</td><td>Serve <code>dist/</code> with nginx or Caddy</td><td><code>@astrojs/node</code> standalone, then <code>node dist/server/entry.mjs</code></td></tr>
+        <tr><td>GitHub Pages</td><td>Official <code>withastro/action</code> workflow; set <code>base</code> for project pages</td><td>Not supported</td></tr>
+      </tbody>
+    </table></div>
+  </section>
+
+  <!-- 13 -->
+  <section id="cheats">
+    <h2><span class="num">13</span>Cheat sheet and gotchas</h2>
+    <h3>Virtual modules</h3>
+    <div class="tbl"><table>
+      <thead><tr><th>Import from</th><th>What you get</th></tr></thead>
+      <tbody>
+        <tr><td><code>astro:content</code></td><td><code>defineCollection</code>, <code>getCollection</code>, <code>getEntry</code>, <code>render</code>, <code>reference</code></td></tr>
+        <tr><td><code>astro/loaders</code></td><td><code>glob</code>, <code>file</code></td></tr>
+        <tr><td><code>astro/zod</code></td><td><code>z</code></td></tr>
+        <tr><td><code>astro:assets</code></td><td><code>Image</code>, <code>Picture</code>, <code>getImage</code>, <code>Font</code></td></tr>
+        <tr><td><code>astro:transitions</code></td><td><code>ClientRouter</code>, <code>navigate</code></td></tr>
+        <tr><td><code>astro:actions</code></td><td><code>defineAction</code>, <code>actions</code>, <code>ActionError</code></td></tr>
+        <tr><td><code>astro:middleware</code></td><td><code>defineMiddleware</code>, <code>sequence</code></td></tr>
+        <tr><td><code>astro:env/server</code>, <code>astro:env/client</code></td><td>Typed environment variables</td></tr>
+      </tbody>
+    </table></div>
+    <h3>The Astro global</h3>
+    <div class="tbl"><table>
+      <thead><tr><th>Property</th><th>Meaning</th></tr></thead>
+      <tbody>
+        <tr><td><code>Astro.props</code></td><td>Props passed to the component</td></tr>
+        <tr><td><code>Astro.params</code></td><td>Dynamic route segments</td></tr>
+        <tr><td><code>Astro.url</code>, <code>Astro.request</code></td><td>Current URL and request</td></tr>
+        <tr><td><code>Astro.cookies</code></td><td><code>get</code>, <code>set</code>, <code>has</code>, <code>delete</code> (on-demand pages)</td></tr>
+        <tr><td><code>Astro.locals</code></td><td>Data set by middleware</td></tr>
+        <tr><td><code>Astro.redirect(url, status)</code></td><td>Return a redirect from frontmatter</td></tr>
+        <tr><td><code>Astro.site</code></td><td>The <code>site</code> config value as a URL</td></tr>
+        <tr><td><code>Astro.slots.has('name')</code></td><td>Whether a named slot was filled</td></tr>
+      </tbody>
+    </table></div>
+    <h3>Template directives</h3>
+    <div class="tbl"><table>
+      <thead><tr><th>Directive</th><th>Effect</th></tr></thead>
+      <tbody>
+        <tr><td><code>client:*</code></td><td>Hydrate a framework component (section 06)</td></tr>
+        <tr><td><code>server:defer</code></td><td>Render a component later on the server</td></tr>
+        <tr><td><code>class:list</code></td><td>Build a class string from arrays and objects</td></tr>
+        <tr><td><code>set:html</code></td><td>Insert raw HTML (trusted content only)</td></tr>
+        <tr><td><code>set:text</code></td><td>Insert escaped text</td></tr>
+        <tr><td><code>is:inline</code></td><td>Ship a script or style unprocessed</td></tr>
+        <tr><td><code>is:global</code></td><td>Unscoped style block</td></tr>
+        <tr><td><code>define:vars</code></td><td>Pass server values into a style or script</td></tr>
+        <tr><td><code>transition:name</code>, <code>transition:persist</code></td><td>View transition pairing and persistence</td></tr>
+      </tbody>
+    </table></div>
+    <h3>Gotchas</h3>
+    <div class="tbl"><table>
+      <thead><tr><th>Symptom</th><th>Cause</th><th>Fix</th></tr></thead>
+      <tbody>
+        <tr><td>React button does nothing</td><td>No <code>client:*</code> directive</td><td>Add <code>client:load</code> or <code>client:visible</code></td></tr>
+        <tr><td><code>window is not defined</code></td><td>Browser code runs during server render</td><td>Move it into an effect, or use <code>client:only</code></td></tr>
+        <tr><td>Function prop is undefined in an island</td><td>Functions do not serialize</td><td>Handle events inside the island</td></tr>
+        <tr><td>Script stops working after navigation</td><td><code>ClientRouter</code> swaps the page without reloading</td><td>Use <code>astro:page-load</code> or custom elements</td></tr>
+        <tr><td>Styles do not reach a child</td><td>Scoping</td><td>Pass <code>class</code>, or use <code>:global()</code></td></tr>
+        <tr><td><code>getStaticPaths</code> required error</td><td>Dynamic route in static mode</td><td>Return paths, or set <code>prerender = false</code> with an adapter</td></tr>
+        <tr><td>Cookies empty or warnings at build</td><td>Reading request data in a prerendered page</td><td>Make that route on-demand</td></tr>
+        <tr><td>Secret shows up in client bundle</td><td>Read in a client script or <code>PUBLIC_</code> prefix</td><td>Read it in frontmatter, use <code>astro:env/server</code></td></tr>
+        <tr><td>Zod import error after upgrading</td><td>Astro 6 moved it</td><td>Import <code>z</code> from <code>astro/zod</code></td></tr>
+        <tr><td>Wrong canonical or sitemap URLs</td><td><code>site</code> missing</td><td>Set <code>site</code> in config</td></tr>
+      </tbody>
+    </table></div>
+  </section>
+
+  <p class="foot">Astro Crash Course · written October 2026 for Astro 6. Source for the version facts: <a href="https://astro.build/blog/astro-6" target="_blank" rel="noopener">astro.build/blog/astro-6</a>. Full reference: <a href="https://docs.astro.build" target="_blank" rel="noopener">docs.astro.build</a>.</p>
+
+  </div>
+  </main>
+</div>
+
+<script>window.Prism = window.Prism || {}; window.Prism.manual = true;</script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/prism.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-typescript.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-jsx.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-tsx.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-bash.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-json.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-markdown.min.js"></script>
+<script>
+(() => {
+  const LANG = { astro: 'astro', tsx: 'tsx', ts: 'typescript', js: 'javascript', bash: 'bash', json: 'json', md: 'markdown', css: 'css', html: 'markup', text: null };
+  const LABEL = { astro: 'astro', tsx: 'tsx', ts: 'ts', js: 'js', bash: 'shell', json: 'json', md: 'markdown', css: 'css', html: 'html', text: '' };
+  const esc = (s) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  const clean = (s) => s.replace(/<\\\/script>/g, '<' + '/script>').replace(/^\n+/, '').replace(/\s+$/, '');
+  const P = window.Prism;
+  const hasP = (l) => P && P.languages && P.languages[l];
+
+  function highlight(code, lang) {
+    if (lang === 'astro' && hasP('markup')) {
+      const m = code.match(/^---\n([\s\S]*?)\n---\n?/);
+      let head = '', rest = code;
+      if (m) {
+        const ts = hasP('typescript') ? P.highlight(m[1], P.languages.typescript, 'typescript') : esc(m[1]);
+        head = '<span class="token punctuation">---</span>\n' + ts + '\n<span class="token punctuation">---</span>\n';
+        rest = code.slice(m[0].length);
+      }
+      return head + P.highlight(rest, P.languages.markup, 'markup');
+    }
+    const id = LANG[lang];
+    if (id && hasP(id)) return P.highlight(code, P.languages[id], id);
+    return esc(code);
+  }
+
+  function copy(btn, text, pre) {
+    const done = (msg) => { btn.textContent = msg; setTimeout(() => { btn.textContent = 'Copy'; }, 1400); };
+    const fallback = () => {
+      const r = document.createRange(); r.selectNodeContents(pre);
+      const s = getSelection(); s.removeAllRanges(); s.addRange(r);
+      done('Selected');
+    };
+    try {
+      navigator.clipboard.writeText(text).then(() => done('Copied'), fallback);
+    } catch (e) { fallback(); }
+  }
+
+  function build(code, lang, file) {
+    const fig = document.createElement('figure');
+    fig.className = 'code';
+    const header = document.createElement('header');
+    const name = document.createElement('span');
+    name.className = 'fname';
+    name.textContent = file || '';
+    if (LABEL[lang]) { const l = document.createElement('span'); l.className = 'lang'; l.textContent = LABEL[lang]; name.appendChild(l); }
+    const btn = document.createElement('button');
+    btn.type = 'button'; btn.textContent = 'Copy';
+    header.append(name, btn);
+    const pre = document.createElement('pre');
+    const c = document.createElement('code');
+    c.innerHTML = highlight(code, lang);
+    pre.appendChild(c);
+    btn.addEventListener('click', () => copy(btn, code, pre));
+    fig.append(header, pre);
+    return fig;
+  }
+
+  document.querySelectorAll('script.src').forEach((s) => {
+    const code = clean(s.textContent);
+    s.replaceWith(build(code, s.dataset.lang, s.dataset.file));
+  });
+
+  const tree = document.getElementById('tree');
+  const viewer = document.getElementById('viewer');
+  const files = [...document.querySelectorAll('script.bp')].map((s) => ({
+    path: s.dataset.file, lang: s.dataset.lang, why: s.dataset.why, code: clean(s.textContent),
+  }));
+  let lastDir = null;
+  const buttons = [];
+  files.forEach((f, i) => {
+    const parts = f.path.split('/');
+    const dir = parts.slice(0, -1).join('/');
+    if (dir !== lastDir) {
+      if (dir) { const d = document.createElement('div'); d.className = 'dir'; d.textContent = dir + '/'; tree.appendChild(d); }
+      lastDir = dir;
+    }
+    const b = document.createElement('button');
+    b.type = 'button';
+    b.setAttribute('role', 'tab');
+    b.id = 'bp-tab-' + i;
+    b.textContent = parts.at(-1);
+    b.style.paddingLeft = dir ? '20px' : '8px';
+    b.addEventListener('click', () => show(i));
+    tree.appendChild(b);
+    buttons.push(b);
+  });
+  function show(i) {
+    const f = files[i];
+    buttons.forEach((b, j) => b.setAttribute('aria-selected', String(i === j)));
+    viewer.innerHTML = '';
+    const why = document.createElement('p');
+    why.className = 'why';
+    why.textContent = f.why;
+    viewer.append(build(f.code, f.lang, f.path), why);
+    try { localStorage.setItem('astro-cc-file', String(i)); } catch (e) {}
+  }
+  let start = files.findIndex((f) => f.path === 'src/pages/index.astro');
+  try { const saved = Number(localStorage.getItem('astro-cc-file')); if (saved >= 0 && saved < files.length && localStorage.getItem('astro-cc-file') !== null) start = saved; } catch (e) {}
+  show(start < 0 ? 0 : start);
+
+  const rail = document.getElementById('rail');
+  const btn = document.getElementById('tocBtn');
+  const mq = matchMedia('(max-width: 980px)');
+  const setRail = (open) => { rail.hidden = !open; btn.setAttribute('aria-expanded', String(open)); };
+  setRail(!mq.matches);
+  mq.addEventListener('change', (e) => setRail(!e.matches));
+  btn.addEventListener('click', () => setRail(rail.hidden));
+  rail.addEventListener('click', (e) => { if (e.target.closest('a') && mq.matches) setRail(false); });
+
+  const links = [...document.querySelectorAll('.toc a')];
+  const byId = new Map(links.map((a) => [a.getAttribute('href').slice(1), a]));
+  const io = new IntersectionObserver((entries) => {
+    entries.forEach((en) => {
+      if (en.isIntersecting) {
+        links.forEach((a) => a.classList.remove('on'));
+        byId.get(en.target.id)?.classList.add('on');
+      }
+    });
+  }, { rootMargin: '-30% 0px -60% 0px' });
+  document.querySelectorAll('main section[id]').forEach((s) => io.observe(s));
+})();
+</script>
+</body>
+</html>
