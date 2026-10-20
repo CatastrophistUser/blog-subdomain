@@ -1,0 +1,23 @@
+/* Shared colour tokens for the blog pages and the standalone posts.
+   Palette matched to pranjalxm.com. Dark is the default theme. */
+:root,
+html[data-theme="dark"] {
+  --bg: #0a0a0a;
+  --text: #ede8e1;
+  --muted: #8a8278;
+  --accent: #ff6b35;
+  --border: #2a1a14;
+  --code-bg: #141210;
+  --font: "IBM Plex Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+  color-scheme: dark;
+}
+
+html[data-theme="light"] {
+  --bg: #f5f1ea;
+  --text: #0a0a0a;
+  --muted: #5f5850;
+  --accent: #c2410c;
+  --border: #ddd3c6;
+  --code-bg: #ebe4d9;
+  color-scheme: light;
+}

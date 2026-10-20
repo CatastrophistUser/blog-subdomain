@@ -1,0 +1,38 @@
+---
+import type { Post } from "../utils/posts";
+
+interface Props {
+  post: Post;
+  secHeading?: boolean;
+}
+const { post, secHeading = true } = Astro.props;
+const { title, description } = post.data;
+---
+
+<li class="card">
+  <a href={`/posts/${post.id}/`} class="card-link">
+    {secHeading ? <h2 transition:name={post.id}>{title}</h2> : <h3 transition:name={post.id}>{title}</h3>}
+  </a>
+  <p>{description}</p>
+</li>
+
+<style>
+  .card {
+    margin-block: 1.5rem;
+  }
+  .card-link {
+    display: inline-block;
+    margin-bottom: 0.25rem;
+    color: var(--accent);
+  }
+  .card-link h2,
+  .card-link h3 {
+    font-size: 1.125rem;
+    font-weight: 500;
+  }
+  .card-link:hover h2,
+  .card-link:hover h3 {
+    text-decoration: underline dashed;
+    text-underline-offset: 4px;
+  }
+</style>

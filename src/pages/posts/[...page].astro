@@ -1,0 +1,26 @@
+---
+import type { GetStaticPaths, Page } from "astro";
+import Layout from "../../layouts/Layout.astro";
+import Card from "../../components/Card.astro";
+import Pagination from "../../components/Pagination.astro";
+import { getPosts, type Post } from "../../utils/posts";
+import { SITE } from "../../config";
+
+export const getStaticPaths = (async ({ paginate }) => {
+  const posts = await getPosts();
+  return paginate(posts, { pageSize: SITE.postsPerPage });
+}) satisfies GetStaticPaths;
+
+const { page } = Astro.props as { page: Page<Post> };
+---
+
+<Layout title={`Posts | ${SITE.title}`}>
+  <main id="main-content">
+    <h1 class="page-title">Posts</h1>
+    <p class="page-desc">All the articles I've posted.</p>
+    <ul>
+      {page.data.map((post) => <Card post={post} />)}
+    </ul>
+    <Pagination current={page.currentPage} last={page.lastPage} prevUrl={page.url.prev} nextUrl={page.url.next} />
+  </main>
+</Layout>

@@ -1,0 +1,57 @@
+---
+interface Props {
+  current: number;
+  last: number;
+  prevUrl?: string;
+  nextUrl?: string;
+}
+const { current, last, prevUrl, nextUrl } = Astro.props;
+---
+
+{
+  last > 1 && (
+    <nav class="pagination" aria-label="Pagination">
+      <a href={prevUrl} class:list={{ disabled: !prevUrl }} aria-disabled={!prevUrl} aria-label="Previous">
+        <svg class="icon" viewBox="0 0 24 24">
+          <path d="M12.707 17.293 8.414 13H18v-2H8.414l4.293-4.293-1.414-1.414L4.586 12l6.707 6.707z" />
+        </svg>
+        Prev
+      </a>
+      <span>
+        {current} / {last}
+      </span>
+      <a href={nextUrl} class:list={{ disabled: !nextUrl }} aria-disabled={!nextUrl} aria-label="Next">
+        Next
+        <svg class="icon" viewBox="0 0 24 24">
+          <path d="m11.293 17.293 1.414 1.414L19.414 12l-6.707-6.707-1.414 1.414L15.586 11H6v2h9.586z" />
+        </svg>
+      </a>
+    </nav>
+  )
+}
+
+<style>
+  .pagination {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 1rem;
+    margin: 2rem auto 1rem;
+  }
+  a {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+    padding: 0.25rem;
+  }
+  a:hover {
+    color: var(--accent);
+  }
+  a:hover svg {
+    fill: var(--accent);
+  }
+  a.disabled {
+    pointer-events: none;
+    opacity: 0.5;
+  }
+</style>

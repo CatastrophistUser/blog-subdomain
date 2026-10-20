@@ -1,0 +1,136 @@
+---
+import Layout from "../layouts/Layout.astro";
+import { getPosts } from "../utils/posts";
+import { SITE } from "../config";
+
+const index = (await getPosts()).map((p) => ({
+  url: `/posts/${p.id}/`,
+  title: p.data.title,
+  description: p.data.description,
+  tags: p.data.tags,
+}));
+---
+
+<Layout title={`Search | ${SITE.title}`}>
+  <main id="main-content">
+    <h1 class="page-title">Search</h1>
+    <p class="page-desc">Search any article ...</p>
+
+    <label class="search-box">
+      <span class="sr-only">Search</span>
+      <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"
+        ><path
+          d="M19.023 16.977a35.13 35.13 0 0 1-1.367-1.384c-.372-.378-.596-.653-.596-.653l-2.8-1.337A6.962 6.962 0 0 0 16 9c0-3.859-3.14-7-7-7S2 5.141 2 9s3.14 7 7 7c1.763 0 3.37-.66 4.603-1.739l1.337 2.8s.275.224.653.596c.387.363.896.854 1.384 1.367l1.358 1.392.604.646 2.121-2.121-.646-.604c-.379-.372-.885-.866-1.391-1.36zM9 14c-2.757 0-5-2.243-5-5s2.243-5 5-5 5 2.243 5 5-2.243 5-5 5z"
+        ></path></svg
+      >
+      <input id="search-input" type="search" placeholder="Search for anything..." autocomplete="off" autofocus />
+    </label>
+
+    <p id="search-count" class="count"></p>
+    <ul id="search-results"></ul>
+
+    <script id="search-index" type="application/json" set:html={JSON.stringify(index)} />
+  </main>
+</Layout>
+
+<style>
+  .search-box {
+    position: relative;
+    display: block;
+  }
+  .search-box svg {
+    position: absolute;
+    left: 0.5rem;
+    top: 50%;
+    transform: translateY(-50%);
+    opacity: 0.75;
+  }
+  input {
+    width: 100%;
+    padding: 0.75rem 0.75rem 0.75rem 2.5rem;
+    background: var(--bg);
+    color: var(--text);
+    border: 1px solid color-mix(in srgb, var(--text) 40%, transparent);
+    border-radius: 0.25rem;
+    font: inherit;
+    letter-spacing: inherit;
+  }
+  input::placeholder {
+    font-style: italic;
+    opacity: 0.75;
+  }
+  input:focus {
+    outline: none;
+    border-color: var(--accent);
+  }
+  .count {
+    margin-top: 2rem;
+  }
+  #search-results :global(li) {
+    margin-block: 1.5rem;
+  }
+  #search-results :global(a) {
+    display: inline-block;
+    color: var(--accent);
+    font-size: 1.125rem;
+    font-weight: 500;
+  }
+  #search-results :global(a:hover) {
+    text-decoration: underline dashed;
+    text-underline-offset: 4px;
+  }
+  #search-results :global(mark) {
+    background: color-mix(in srgb, var(--accent) 25%, transparent);
+    color: inherit;
+  }
+</style>
+
+<script>
+  type Entry = { url: string; title: string; description: string; tags: string[] };
+
+  const esc = (s: string) => s.replace(/[&<>"']/g, (c) => `&#${c.charCodeAt(0)};`);
+  const highlight = (text: string, q: string) => {
+    if (!q) return esc(text);
+    const re = new RegExp(`(${q.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")})`, "gi");
+    return esc(text).replace(re, "<mark>$1</mark>");
+  };
+
+  function initSearch() {
+    const input = document.querySelector<HTMLInputElement>("#search-input");
+    const results = document.querySelector("#search-results");
+    const count = document.querySelector("#search-count");
+    const raw = document.querySelector("#search-index")?.textContent;
+    if (!input || !results || !count || !raw) return;
+    const index: Entry[] = JSON.parse(raw);
+
+    const run = () => {
+      const q = input.value.trim();
+      const url = new URL(location.href);
+      if (q) url.searchParams.set("q", q);
+      else url.searchParams.delete("q");
+      history.replaceState(history.state, "", url);
+
+      if (q.length < 2) {
+        results.innerHTML = "";
+        count.textContent = "";
+        return;
+      }
+      const ql = q.toLowerCase();
+      const hits = index.filter((e) =>
+        [e.title, e.description, ...e.tags].some((f) => f.toLowerCase().includes(ql)),
+      );
+      count.textContent = `Found ${hits.length} result${hits.length === 1 ? "" : "s"} for '${q}'`;
+      results.innerHTML = hits
+        .map(
+          (e) => `<li><a href="${e.url}">${highlight(e.title, q)}</a>
+            <p>${highlight(e.description, q)}</p></li>`,
+        )
+        .join("");
+    };
+
+    input.value = new URLSearchParams(location.search).get("q") ?? "";
+    input.addEventListener("input", run);
+    run();
+  }
+  document.addEventListener("astro:page-load", initSearch);
+</script>

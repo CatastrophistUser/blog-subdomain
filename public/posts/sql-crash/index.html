@@ -1,0 +1,1084 @@
+<!DOCTYPE html>
+<html lang="en">
+<head><meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SQL Field Guide</title>
+
+<!--- For Blog Page --->
+<meta name="description" content="A field guide to SQL: the five sublanguages (DDL, DQL, DML, DCL, TCL), data types, operators, functions, joins, pivots, transactions and advanced objects.">
+<meta name="keywords" content="sql, databases, reference">
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0B0F17;
+    --panel: #121826;
+    --panel-2: #1A2233;
+    --border: #26314A;
+    --text: #E7ECF4;
+    --muted: #8C97AF;
+    --accent: #57D9C4;
+    --accent-soft: rgba(87,217,196,0.12);
+    --accent-2: #F0B429;
+    --accent-2-soft: rgba(240,180,41,0.14);
+    --danger: #F0797C;
+    --danger-soft: rgba(240,121,124,0.12);
+    --code-bg: #0D1220;
+    --code-border: #232C40;
+    --shadow: 0 12px 30px rgba(0,0,0,0.35);
+  }
+
+  @media (prefers-color-scheme: light) {
+    :root:not([data-theme="dark"]) {
+      --bg: #F5F6F9;
+      --panel: #FFFFFF;
+      --panel-2: #EEF1F6;
+      --border: #DCE1EB;
+      --text: #1B2130;
+      --muted: #5C6478;
+      --accent: #0F8A78;
+      --accent-soft: rgba(15,138,120,0.10);
+      --accent-2: #B4770F;
+      --accent-2-soft: rgba(180,119,15,0.12);
+      --danger: #C6484B;
+      --danger-soft: rgba(198,72,75,0.10);
+      --code-bg: #0F172A;
+      --code-border: #1F2A40;
+      --shadow: 0 10px 24px rgba(20,30,50,0.10);
+    }
+  }
+  :root[data-theme="light"] {
+    --bg: #F5F6F9;
+    --panel: #FFFFFF;
+    --panel-2: #EEF1F6;
+    --border: #DCE1EB;
+    --text: #1B2130;
+    --muted: #5C6478;
+    --accent: #0F8A78;
+    --accent-soft: rgba(15,138,120,0.10);
+    --accent-2: #B4770F;
+    --accent-2-soft: rgba(180,119,15,0.12);
+    --danger: #C6484B;
+    --danger-soft: rgba(198,72,75,0.10);
+    --code-bg: #0F172A;
+    --code-border: #1F2A40;
+    --shadow: 0 10px 24px rgba(20,30,50,0.10);
+  }
+  :root[data-theme="dark"] {
+    --bg: #0B0F17;
+    --panel: #121826;
+    --panel-2: #1A2233;
+    --border: #26314A;
+    --text: #E7ECF4;
+    --muted: #8C97AF;
+    --accent: #57D9C4;
+    --accent-soft: rgba(87,217,196,0.12);
+    --accent-2: #F0B429;
+    --accent-2-soft: rgba(240,180,41,0.14);
+    --danger: #F0797C;
+    --danger-soft: rgba(240,121,124,0.12);
+    --code-bg: #0D1220;
+    --code-border: #232C40;
+    --shadow: 0 12px 30px rgba(0,0,0,0.35);
+  }
+
+  * { box-sizing: border-box; }
+  html, body {
+    margin: 0; padding: 0;
+    background: var(--bg);
+    color: var(--text);
+    font-family: "Space Grotesk", system-ui, sans-serif;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .app { display: flex; min-height: 100vh; max-width: 1280px; margin: 0 auto; }
+
+  /* ---- Sidebar ---- */
+  .sidebar {
+    width: 248px;
+    flex-shrink: 0;
+    padding: 28px 16px;
+    border-right: 1px solid var(--border);
+    position: sticky;
+    top: 0;
+    align-self: flex-start;
+    height: 100vh;
+    overflow-y: auto;
+  }
+  .brand {
+    padding: 0 10px 20px 10px;
+    margin-bottom: 12px;
+    border-bottom: 1px solid var(--border);
+  }
+  .brand-title {
+    font-weight: 700;
+    font-size: 1.15rem;
+    letter-spacing: -0.01em;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .brand-mark {
+    width: 10px; height: 10px; border-radius: 2px;
+    background: var(--accent);
+    box-shadow: 0 0 0 3px var(--accent-soft);
+    flex-shrink: 0;
+  }
+  .brand-sub {
+    font-family: "JetBrains Mono", monospace;
+    font-size: 0.72rem;
+    color: var(--muted);
+    margin-top: 6px;
+    line-height: 1.5;
+  }
+
+  .navlist { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 2px; }
+  .navlist button {
+    width: 100%;
+    text-align: left;
+    background: transparent;
+    border: none;
+    border-left: 2px solid transparent;
+    color: var(--muted);
+    font-family: "Space Grotesk", sans-serif;
+    font-size: 0.92rem;
+    font-weight: 500;
+    padding: 10px 12px;
+    border-radius: 0 8px 8px 0;
+    cursor: pointer;
+    transition: background 0.15s ease, color 0.15s ease, border-color 0.15s ease;
+  }
+  .navlist button .idx {
+    font-family: "JetBrains Mono", monospace;
+    font-size: 0.72rem;
+    color: var(--muted);
+    margin-right: 8px;
+    opacity: 0.7;
+  }
+  .navlist button:hover { color: var(--text); background: var(--panel-2); }
+  .navlist button.active {
+    color: var(--text);
+    background: var(--accent-soft);
+    border-left-color: var(--accent);
+  }
+  .navlist button.active .idx { color: var(--accent); opacity: 1; }
+
+  .side-foot {
+    margin-top: 20px;
+    padding-top: 16px;
+    border-top: 1px solid var(--border);
+    font-family: "JetBrains Mono", monospace;
+    font-size: 0.7rem;
+    color: var(--muted);
+    line-height: 1.6;
+  }
+  .theme-toggle {
+    margin-top: 14px;
+    display: inline-flex;
+    gap: 6px;
+    font-family: "JetBrains Mono", monospace;
+    font-size: 0.7rem;
+  }
+  .theme-toggle button {
+    background: var(--panel-2);
+    border: 1px solid var(--border);
+    color: var(--muted);
+    padding: 5px 9px;
+    border-radius: 6px;
+    cursor: pointer;
+  }
+  .theme-toggle button.on { color: var(--accent); border-color: var(--accent); }
+
+  /* ---- Main ---- */
+  main.content { flex: 1; min-width: 0; padding: 40px 44px 80px 44px; }
+  .page { display: none; }
+  .page.active { display: block; animation: fade 0.25s ease; }
+  @keyframes fade { from { opacity: 0; transform: translateY(4px);} to { opacity: 1; transform: translateY(0);} }
+
+  .page-head { margin-bottom: 28px; max-width: 640px; }
+  .page-head h1 { font-size: 1.9rem; font-weight: 700; letter-spacing: -0.015em; margin: 0 0 10px 0; }
+  .page-head p { color: var(--muted); font-size: 0.98rem; line-height: 1.6; margin: 0; }
+
+  h2.section-title {
+    font-size: 1.15rem;
+    font-weight: 600;
+    margin: 40px 0 14px 0;
+    padding-bottom: 10px;
+    border-bottom: 1px solid var(--border);
+  }
+  h2.section-title:first-of-type { margin-top: 0; }
+  h3.sub-title { font-size: 0.98rem; font-weight: 600; margin: 22px 0 10px 0; color: var(--text); }
+  p.desc { color: var(--muted); font-size: 0.92rem; line-height: 1.65; margin: 0 0 14px 0; max-width: 700px; }
+
+  /* card grid for sublanguages / advanced objects */
+  .card-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+    gap: 14px;
+    margin-bottom: 10px;
+  }
+  .card {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 16px 18px;
+  }
+  .card-head { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; margin-bottom: 6px; }
+  .card-head h4 { margin: 0; font-size: 1rem; font-weight: 700; }
+  .card-tag {
+    font-family: "JetBrains Mono", monospace;
+    font-size: 0.68rem;
+    color: var(--accent);
+    background: var(--accent-soft);
+    padding: 2px 7px;
+    border-radius: 5px;
+    white-space: nowrap;
+  }
+  .card p { color: var(--muted); font-size: 0.87rem; line-height: 1.55; margin: 0 0 10px 0; }
+  .cmd-list { font-family: "JetBrains Mono", monospace; font-size: 0.78rem; color: var(--text); line-height: 2; }
+  .cmd-list span { background: var(--panel-2); border: 1px solid var(--border); padding: 2px 7px; border-radius: 5px; margin: 0 5px 5px 0; display: inline-block; }
+
+  /* code blocks */
+  pre.code {
+    background: rgba(255,255,255,0.06);
+    border: 1px solid rgba(255,255,255,0.14);
+    border-radius: 14px;
+    padding: 14px 16px;
+    overflow-x: auto;
+    margin: 0 0 16px 0;
+    -webkit-backdrop-filter: blur(18px) saturate(180%);
+    backdrop-filter: blur(18px) saturate(180%);
+    box-shadow: 0 8px 28px rgba(0,0,0,0.28), inset 0 1px 0 rgba(255,255,255,0.06);
+  }
+  @media (prefers-color-scheme: light) {
+    :root:not([data-theme="dark"]) pre.code {
+      background: rgba(255,255,255,0.45);
+      border: 1px solid rgba(255,255,255,0.6);
+      box-shadow: 0 8px 28px rgba(20,30,50,0.10), inset 0 1px 0 rgba(255,255,255,0.5);
+    }
+  }
+  :root[data-theme="light"] pre.code {
+    background: rgba(255,255,255,0.45);
+    border: 1px solid rgba(255,255,255,0.6);
+    box-shadow: 0 8px 28px rgba(20,30,50,0.10), inset 0 1px 0 rgba(255,255,255,0.5);
+  }
+  pre.code code {
+    font-family: "JetBrains Mono", monospace;
+    font-size: 0.83rem;
+    line-height: 1.65;
+    color: #DCE3F0;
+    white-space: pre;
+  }
+  .kw { color: #7DD3FC; font-weight: 600; }
+  .str { color: #F0B429; }
+  .num { color: #C4B5FD; }
+  .cmt { color: #6B7688; font-style: italic; }
+  .fn  { color: #86E5CE; }
+
+  .code-label {
+    font-family: "JetBrains Mono", monospace;
+    font-size: 0.68rem;
+    color: var(--muted);
+    margin: 0 0 6px 2px;
+    display: block;
+  }
+
+  /* tables */
+  .tbl-wrap { overflow-x: auto; margin-bottom: 18px; border: 1px solid var(--border); border-radius: 10px; }
+  table.ref { width: 100%; border-collapse: collapse; font-size: 0.86rem; min-width: 480px; }
+  table.ref th {
+    text-align: left;
+    font-family: "JetBrains Mono", monospace;
+    font-size: 0.72rem;
+    color: var(--muted);
+    font-weight: 500;
+    padding: 10px 14px;
+    background: var(--panel-2);
+    border-bottom: 1px solid var(--border);
+    white-space: nowrap;
+  }
+  table.ref td {
+    padding: 10px 14px;
+    border-bottom: 1px solid var(--border);
+    color: var(--text);
+    vertical-align: top;
+  }
+  table.ref tr:last-child td { border-bottom: none; }
+  table.ref td code, table.ref th code {
+    font-family: "JetBrains Mono", monospace;
+    background: var(--panel-2);
+    padding: 1px 6px;
+    border-radius: 5px;
+    font-size: 0.82rem;
+    color: var(--accent);
+  }
+  table.ref td.muted, table.ref span.muted { color: var(--muted); }
+
+  /* join diagrams */
+  .join-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px,1fr)); gap: 14px; margin-bottom: 18px; }
+  .join-card { background: var(--panel); border: 1px solid var(--border); border-radius: 10px; padding: 14px; text-align: center; }
+  .join-card svg { display: block; margin: 4px auto 10px auto; }
+  .join-card h5 { margin: 0 0 4px 0; font-size: 0.88rem; font-weight: 600; }
+  .join-card p { margin: 0; font-size: 0.78rem; color: var(--muted); line-height: 1.5; }
+
+  /* callouts */
+  .callout {
+    border: 1px solid var(--border);
+    border-left: 3px solid var(--accent);
+    background: var(--panel);
+    border-radius: 0 10px 10px 0;
+    padding: 12px 16px;
+    margin: 0 0 18px 0;
+    font-size: 0.87rem;
+    color: var(--text);
+    line-height: 1.6;
+  }
+  .callout.warn { border-left-color: var(--danger); }
+  .callout.warn strong { color: var(--danger); }
+  .callout strong { color: var(--accent); }
+
+  /* two-column layout */
+  .split { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; align-items: start; }
+  @media (max-width: 860px) { .split { grid-template-columns: 1fr; } }
+
+  /* normal form steps */
+  .nf-row { display: grid; grid-template-columns: 90px 1fr; gap: 16px; padding: 14px 0; border-bottom: 1px solid var(--border); }
+  .nf-row:last-child { border-bottom: none; }
+  .nf-tag {
+    font-family: "JetBrains Mono", monospace;
+    font-weight: 700;
+    font-size: 0.95rem;
+    color: var(--accent);
+  }
+  .nf-row p { margin: 0 0 8px 0; color: var(--muted); font-size: 0.87rem; line-height: 1.6; }
+  .nf-row p:last-child { margin-bottom: 0; }
+
+  /* ER mini diagram */
+  .er-wrap { display: flex; justify-content: center; margin: 10px 0 24px 0; overflow-x: auto; }
+
+  ::-webkit-scrollbar { height: 8px; width: 8px; }
+  ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
+
+  @media (max-width: 900px) {
+    .app { flex-direction: column; }
+    .sidebar {
+      width: 100%; height: auto; position: relative;
+      border-right: none; border-bottom: 1px solid var(--border);
+      padding: 16px;
+    }
+    .navlist { flex-direction: row; overflow-x: auto; gap: 6px; }
+    .navlist button { white-space: nowrap; border-left: none; border-bottom: 2px solid transparent; border-radius: 8px 8px 0 0; }
+    .navlist button.active { border-left: none; border-bottom-color: var(--accent); }
+    .side-foot, .brand-sub { display: none; }
+    main.content { padding: 28px 20px 60px 20px; }
+  }
+
+  a { color: var(--accent); }
+  :focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+</style>
+</head>
+<body>
+<div class="app">
+
+  <nav class="sidebar" aria-label="Sections">
+    <div class="brand">
+      <div class="brand-title"><span class="brand-mark" aria-hidden="true"></span>SQL Field Guide</div>
+      <div class="brand-sub">a working reference, not a tutorial —<br>skim the tables, copy the syntax.</div>
+    </div>
+    <ul class="navlist" id="navlist" role="tablist">
+      <li><button data-page="sublanguages" class="active" role="tab" aria-selected="true"><span class="idx">01</span>Sublanguages</button></li>
+      <li><button data-page="toolkit" role="tab" aria-selected="false"><span class="idx">02</span>Core toolkit</button></li>
+      <li><button data-page="objects" role="tab" aria-selected="false"><span class="idx">03</span>Advanced objects</button></li>
+      <li><button data-page="design" role="tab" aria-selected="false"><span class="idx">04</span>Design &amp; security</button></li>
+    </ul>
+    <div class="side-foot">
+      Syntax shown is ANSI-leaning.<br>Engine-specific notes are flagged inline —<br>Postgres, MySQL, SQL Server differ often.
+      <div class="theme-toggle" role="group" aria-label="Theme">
+        <button id="btn-dark" type="button">dark</button>
+        <button id="btn-light" type="button">light</button>
+      </div>
+    </div>
+  </nav>
+
+  <main class="content">
+
+    <!-- ================= PAGE 1: SUBLANGUAGES ================= -->
+    <section class="page active" id="page-sublanguages">
+      <div class="page-head">
+        <h1>The five sublanguages</h1>
+        <p>SQL is often taught as one language, but every statement belongs to one of five groups, split by what it operates on: structure, rows returned, row data, permissions, or the unit of work itself.</p>
+      </div>
+
+      <div class="card-grid">
+        <div class="card">
+          <div class="card-head"><h4>DDL</h4><span class="card-tag">structure</span></div>
+          <p>Data Definition Language. Creates and reshapes schema objects — tables, indexes, views, schemas. Most engines auto-commit DDL immediately, so it can't be rolled back like ordinary row changes.</p>
+          <div class="cmd-list"><span>CREATE</span><span>ALTER</span><span>DROP</span><span>TRUNCATE</span><span>RENAME</span></div>
+        </div>
+        <div class="card">
+          <div class="card-head"><h4>DQL</h4><span class="card-tag">retrieval</span></div>
+          <p>Data Query Language. Technically one statement — SELECT — but its clauses (filtering, grouping, ordering, limiting) do most of the heavy lifting in day-to-day SQL.</p>
+          <div class="cmd-list"><span>SELECT</span></div>
+        </div>
+        <div class="card">
+          <div class="card-head"><h4>DML</h4><span class="card-tag">row data</span></div>
+          <p>Data Manipulation Language. Adds, changes, or removes row-level data without touching the shape of the table. Wrapped in a transaction, these are what COMMIT and ROLLBACK act on.</p>
+          <div class="cmd-list"><span>INSERT</span><span>UPDATE</span><span>DELETE</span><span>MERGE</span></div>
+        </div>
+        <div class="card">
+          <div class="card-head"><h4>DCL</h4><span class="card-tag">access</span></div>
+          <p>Data Control Language. Grants or removes the ability for a role or user to run other statements against an object.</p>
+          <div class="cmd-list"><span>GRANT</span><span>REVOKE</span></div>
+        </div>
+        <div class="card">
+          <div class="card-head"><h4>TCL</h4><span class="card-tag">unit of work</span></div>
+          <p>Transaction Control Language. Groups DML statements into a unit that either fully applies or fully reverts, and marks checkpoints inside that unit.</p>
+          <div class="cmd-list"><span>BEGIN</span><span>COMMIT</span><span>ROLLBACK</span><span>SAVEPOINT</span></div>
+        </div>
+      </div>
+
+      <h2 class="section-title">Quick reference</h2>
+      <div class="tbl-wrap">
+        <table class="ref">
+          <tr><th>Group</th><th>Acts on</th><th>Auto-commits?</th><th>Rollback-able?</th></tr>
+          <tr><td>DDL</td><td>Schema objects</td><td>Yes, in most engines</td><td class="muted">No — treat as permanent</td></tr>
+          <tr><td>DQL</td><td>Result sets</td><td class="muted">n/a (read-only)</td><td class="muted">n/a</td></tr>
+          <tr><td>DML</td><td>Row data</td><td>Only if autocommit mode is on</td><td>Yes, inside an open transaction</td></tr>
+          <tr><td>DCL</td><td>Privileges</td><td>Yes, in most engines</td><td class="muted">Engine-dependent</td></tr>
+          <tr><td>TCL</td><td>The transaction itself</td><td class="muted">n/a</td><td class="muted">n/a</td></tr>
+        </table>
+      </div>
+
+      <h2 class="section-title">DDL — shaping the schema</h2>
+      <span class="code-label">creating and changing a table</span>
+      <pre class="code"><code class="sql">CREATE TABLE employees (
+  id          INT PRIMARY KEY,
+  name        VARCHAR(100) NOT NULL,
+  department  VARCHAR(50),
+  hired_on    DATE DEFAULT CURRENT_DATE
+);
+
+ALTER TABLE employees ADD COLUMN email VARCHAR(120);
+ALTER TABLE employees DROP COLUMN department;
+ALTER TABLE employees RENAME COLUMN name TO full_name;
+
+DROP TABLE employees;
+TRUNCATE TABLE employees;   -- wipes all rows, resets identity, can't target with WHERE</code></pre>
+      <div class="callout warn"><strong>TRUNCATE vs DELETE</strong> — TRUNCATE is DDL: it deallocates the table's storage, skips row-level triggers, and can't be filtered. DELETE is DML: it removes rows one at a time, fires triggers, and can be rolled back inside a transaction.</div>
+
+      <h2 class="section-title">DQL — the clause order</h2>
+      <p class="desc">The order you write a SELECT is not the order it runs. Writing it out helps explain why aliases defined in SELECT aren't visible in WHERE, but are visible in ORDER BY.</p>
+      <span class="code-label">written order</span>
+      <pre class="code"><code class="sql">SELECT department, COUNT(*) AS headcount
+FROM employees
+WHERE hired_on >= '2024-01-01'
+GROUP BY department
+HAVING COUNT(*) > 5
+ORDER BY headcount DESC
+LIMIT 10;</code></pre>
+      <div class="callout"><strong>Execution order</strong> — FROM → WHERE → GROUP BY → HAVING → SELECT → ORDER BY → LIMIT. That's why <code style="font-family:'JetBrains Mono',monospace;background:var(--panel-2);padding:1px 6px;border-radius:5px;">headcount</code> can be used in HAVING/ORDER BY on some engines but not always in WHERE.</div>
+
+      <h2 class="section-title">DML — changing rows</h2>
+      <span class="code-label">insert, update, delete, and an upsert</span>
+      <pre class="code"><code class="sql">INSERT INTO employees (id, full_name, hired_on)
+VALUES (101, 'Asha Rao', '2024-03-01');
+
+UPDATE employees
+SET department = 'Engineering'
+WHERE id = 101;
+
+DELETE FROM employees
+WHERE id = 101;
+
+MERGE INTO targets t USING staging s ON t.id = s.id
+WHEN MATCHED THEN UPDATE SET t.value = s.value
+WHEN NOT MATCHED THEN INSERT (id, value) VALUES (s.id, s.value);</code></pre>
+      <p class="desc">MERGE syntax varies the most across engines — Postgres uses it since v15; MySQL instead relies on <code style="font-family:'JetBrains Mono',monospace;background:var(--panel-2);padding:1px 6px;border-radius:5px;">INSERT ... ON DUPLICATE KEY UPDATE</code> for the same upsert pattern.</p>
+
+      <h2 class="section-title">DCL — permissions</h2>
+      <pre class="code"><code class="sql">GRANT SELECT, INSERT ON employees TO analyst_role;
+GRANT ALL PRIVILEGES ON SCHEMA hr TO admin_role;
+
+REVOKE INSERT ON employees FROM analyst_role;</code></pre>
+      <p class="desc">Grant at the role level, not the individual user, so access changes when someone changes teams rather than when someone remembers to update a permissions list.</p>
+
+      <h2 class="section-title">TCL — units of work</h2>
+      <pre class="code"><code class="sql">BEGIN TRANSACTION;
+
+UPDATE accounts SET balance = balance - 100 WHERE id = 1;
+SAVEPOINT before_credit;
+UPDATE accounts SET balance = balance + 100 WHERE id = 2;
+
+COMMIT;
+-- or: ROLLBACK;
+-- or: ROLLBACK TO SAVEPOINT before_credit;</code></pre>
+      <p class="desc">A savepoint lets you undo part of a transaction without discarding everything since BEGIN — useful when a multi-step batch fails partway through.</p>
+    </section>
+
+    <!-- ================= PAGE 2: CORE TOOLKIT ================= -->
+    <section class="page" id="page-toolkit">
+      <div class="page-head">
+        <h1>Core toolkit</h1>
+        <p>The vocabulary that shows up in nearly every query: types, operators, the four function families, joins, pivot/unpivot, and what commit/rollback actually guarantee.</p>
+      </div>
+
+      <h2 class="section-title">Data types</h2>
+      <div class="tbl-wrap">
+        <table class="ref">
+          <tr><th>Category</th><th>Common types</th><th>Notes</th></tr>
+          <tr><td>Numeric</td><td><code>INT</code> / <code>BIGINT</code> / <code>SMALLINT</code></td><td>Exact, fixed-size integers.</td></tr>
+          <tr><td></td><td><code>DECIMAL(p,s)</code> / <code>NUMERIC(p,s)</code></td><td>Exact fixed-point — always use for money.</td></tr>
+          <tr><td></td><td><code>FLOAT</code> / <code>REAL</code> / <code>DOUBLE</code></td><td>Approximate — never use for currency.</td></tr>
+          <tr><td>String</td><td><code>CHAR(n)</code></td><td>Fixed-length, space-padded.</td></tr>
+          <tr><td></td><td><code>VARCHAR(n)</code></td><td>Variable-length up to n.</td></tr>
+          <tr><td></td><td><code>TEXT</code></td><td>Unbounded / large text.</td></tr>
+          <tr><td>Date &amp; time</td><td><code>DATE</code> / <code>TIME</code></td><td>Calendar date or time-of-day only.</td></tr>
+          <tr><td></td><td><code>TIMESTAMP</code> / <code>DATETIME</code></td><td>Date + time; check whether it's timezone-aware.</td></tr>
+          <tr><td></td><td><code>INTERVAL</code></td><td>A span of time — Postgres/Oracle; MySQL lacks a native type.</td></tr>
+          <tr><td>Boolean</td><td><code>BOOLEAN</code></td><td>True/false — MySQL stores as <code>TINYINT(1)</code>.</td></tr>
+          <tr><td>Binary / semi-structured</td><td><code>BLOB</code> / <code>BYTEA</code></td><td>Raw binary data.</td></tr>
+          <tr><td></td><td><code>JSON</code> / <code>JSONB</code></td><td>Semi-structured — JSONB (Postgres) is indexable.</td></tr>
+        </table>
+      </div>
+
+      <h2 class="section-title">Operators</h2>
+      <div class="tbl-wrap">
+        <table class="ref">
+          <tr><th>Type</th><th>Operators</th></tr>
+          <tr><td>Arithmetic</td><td><code>+</code> <code>-</code> <code>*</code> <code>/</code> <code>%</code></td></tr>
+          <tr><td>Comparison</td><td><code>=</code> <code>&lt;&gt;</code> / <code>!=</code> <code>&gt;</code> <code>&lt;</code> <code>&gt;=</code> <code>&lt;=</code></td></tr>
+          <tr><td>Logical</td><td><code>AND</code> <code>OR</code> <code>NOT</code></td></tr>
+          <tr><td>Membership &amp; pattern</td><td><code>IN</code> <code>BETWEEN</code> <code>LIKE</code> <code>IS NULL</code> <code>EXISTS</code></td></tr>
+          <tr><td>Set operators (combine queries)</td><td><code>UNION</code> <code>UNION ALL</code> <code>INTERSECT</code> <code>EXCEPT</code> / <code>MINUS</code></td></tr>
+        </table>
+      </div>
+      <div class="callout"><strong>UNION vs UNION ALL</strong> — plain UNION de-duplicates the combined result, which means a sort or hash pass over everything. UNION ALL keeps duplicates and skips that pass — use it whenever you already know the two sides don't overlap.</div>
+
+      <h2 class="section-title">Functions, by family</h2>
+      <div class="split">
+        <div>
+          <h3 class="sub-title">Math</h3>
+          <pre class="code"><code class="sql">ABS(-4)          -- 4
+ROUND(3.456, 2)  -- 3.46
+CEIL(4.1)        -- 5
+FLOOR(4.9)       -- 4
+POWER(2, 10)     -- 1024
+SQRT(81)         -- 9
+MOD(17, 5)       -- 2</code></pre>
+        </div>
+        <div>
+          <h3 class="sub-title">String</h3>
+          <pre class="code"><code class="sql">CONCAT(first, ' ', last)
+SUBSTRING(name FROM 1 FOR 3)
+LENGTH(name)
+UPPER(name) / LOWER(name)
+TRIM('  padded  ')
+REPLACE(url, 'http:', 'https:')
+LPAD(id::text, 6, '0')</code></pre>
+        </div>
+        <div>
+          <h3 class="sub-title">Date &amp; time</h3>
+          <pre class="code"><code class="sql">CURRENT_DATE / CURRENT_TIMESTAMP
+DATE_ADD(hired_on, INTERVAL 30 DAY)   -- MySQL
+hired_on + INTERVAL '30 days'         -- Postgres
+DATEDIFF(day, hired_on, CURRENT_DATE) -- SQL Server
+EXTRACT(YEAR FROM hired_on)
+DATE_TRUNC('month', hired_on)         -- Postgres</code></pre>
+        </div>
+        <div>
+          <h3 class="sub-title">Aggregate</h3>
+          <pre class="code"><code class="sql">COUNT(*) / COUNT(DISTINCT col)
+SUM(amount)
+AVG(amount)
+MIN(amount) / MAX(amount)
+STRING_AGG(name, ', ')     -- Postgres/SQL Server
+GROUP_CONCAT(name)         -- MySQL</code></pre>
+        </div>
+      </div>
+      <div class="callout warn"><strong>Aggregates only combine with GROUP BY correctly</strong> — every non-aggregated column in SELECT must appear in GROUP BY, or the engine either errors (Postgres) or silently picks an arbitrary row (older MySQL).</div>
+
+      <h2 class="section-title">Joins</h2>
+      <div class="join-grid">
+        <div class="join-card">
+          <svg width="90" height="60" viewBox="0 0 90 60"><circle cx="32" cy="30" r="22" fill="none" stroke="var(--border)" stroke-width="2"/><circle cx="58" cy="30" r="22" fill="none" stroke="var(--border)" stroke-width="2"/><path d="M45,10 A22,22 0 0 1 45,50 A22,22 0 0 1 45,10 Z" fill="var(--accent)" opacity="0.55"/></svg>
+          <h5>INNER JOIN</h5>
+          <p>Only rows matching on both sides.</p>
+        </div>
+        <div class="join-card">
+          <svg width="90" height="60" viewBox="0 0 90 60"><circle cx="58" cy="30" r="22" fill="none" stroke="var(--border)" stroke-width="2"/><circle cx="32" cy="30" r="22" fill="var(--accent)" opacity="0.55" stroke="var(--border)" stroke-width="2"/></svg>
+          <h5>LEFT JOIN</h5>
+          <p>All of the left table, matched rows from the right, NULLs where absent.</p>
+        </div>
+        <div class="join-card">
+          <svg width="90" height="60" viewBox="0 0 90 60"><circle cx="32" cy="30" r="22" fill="none" stroke="var(--border)" stroke-width="2"/><circle cx="58" cy="30" r="22" fill="var(--accent)" opacity="0.55" stroke="var(--border)" stroke-width="2"/></svg>
+          <h5>RIGHT JOIN</h5>
+          <p>Mirror of LEFT JOIN — all of the right table.</p>
+        </div>
+        <div class="join-card">
+          <svg width="90" height="60" viewBox="0 0 90 60"><circle cx="32" cy="30" r="22" fill="var(--accent)" opacity="0.55" stroke="var(--border)" stroke-width="2"/><circle cx="58" cy="30" r="22" fill="var(--accent)" opacity="0.55" stroke="var(--border)" stroke-width="2"/></svg>
+          <h5>FULL OUTER JOIN</h5>
+          <p>Everything from both sides, matched where possible.</p>
+        </div>
+        <div class="join-card">
+          <svg width="90" height="60" viewBox="0 0 90 60"><rect x="10" y="8" width="30" height="44" fill="var(--accent)" opacity="0.35" stroke="var(--border)" stroke-width="2"/><rect x="50" y="8" width="30" height="44" fill="var(--accent)" opacity="0.35" stroke="var(--border)" stroke-width="2"/></svg>
+          <h5>CROSS JOIN</h5>
+          <p>Every row of A paired with every row of B — a Cartesian product.</p>
+        </div>
+        <div class="join-card">
+          <svg width="90" height="60" viewBox="0 0 90 60"><circle cx="32" cy="30" r="22" fill="none" stroke="var(--border)" stroke-width="2"/><circle cx="58" cy="30" r="22" fill="none" stroke="var(--border)" stroke-width="2" stroke-dasharray="4 3"/></svg>
+          <h5>SELF JOIN</h5>
+          <p>A table joined to itself, usually to compare rows within it.</p>
+        </div>
+      </div>
+      <span class="code-label">the same relationship, five ways</span>
+      <pre class="code"><code class="sql">-- INNER: only customers who have placed an order
+SELECT c.name, o.total
+FROM customers c
+INNER JOIN orders o ON o.customer_id = c.id;
+
+-- LEFT: every customer, with NULLs for those who haven't ordered
+SELECT c.name, o.total
+FROM customers c
+LEFT JOIN orders o ON o.customer_id = c.id;
+
+-- ANTI-JOIN pattern: customers with NO orders at all
+SELECT c.name
+FROM customers c
+LEFT JOIN orders o ON o.customer_id = c.id
+WHERE o.id IS NULL;
+
+-- SELF JOIN: employees paired with their manager
+SELECT e.full_name AS employee, m.full_name AS manager
+FROM employees e
+LEFT JOIN employees m ON e.manager_id = m.id;</code></pre>
+
+      <h2 class="section-title">Pivot &amp; unpivot</h2>
+      <p class="desc">Pivoting turns row values into columns (long → wide); unpivoting does the reverse (wide → long). Syntax is the least standardized part of SQL here — some engines have dedicated keywords, others lean on conditional aggregation.</p>
+      <div class="split">
+        <div>
+          <h3 class="sub-title">Pivot with conditional aggregation</h3>
+          <p class="desc">Portable across almost every engine.</p>
+          <pre class="code"><code class="sql">SELECT
+  department,
+  SUM(CASE WHEN quarter = 'Q1' THEN revenue END) AS q1,
+  SUM(CASE WHEN quarter = 'Q2' THEN revenue END) AS q2,
+  SUM(CASE WHEN quarter = 'Q3' THEN revenue END) AS q3,
+  SUM(CASE WHEN quarter = 'Q4' THEN revenue END) AS q4
+FROM sales
+GROUP BY department;</code></pre>
+        </div>
+        <div>
+          <h3 class="sub-title">Native PIVOT (SQL Server / Snowflake)</h3>
+          <p class="desc">Cleaner syntax, narrower support.</p>
+          <pre class="code"><code class="sql">SELECT department, [Q1], [Q2], [Q3], [Q4]
+FROM sales
+PIVOT (
+  SUM(revenue) FOR quarter IN ([Q1], [Q2], [Q3], [Q4])
+) AS p;</code></pre>
+        </div>
+      </div>
+      <span class="code-label">unpivot — wide back to long</span>
+      <pre class="code"><code class="sql">SELECT department, quarter, revenue
+FROM sales
+UNPIVOT (
+  revenue FOR quarter IN (q1, q2, q3, q4)
+) AS u;</code></pre>
+      <div class="callout"><strong>Postgres note</strong> — there's no native PIVOT/UNPIVOT; the conditional-aggregation pattern (or the <code style="font-family:'JetBrains Mono',monospace;background:var(--panel-2);padding:1px 6px;border-radius:5px;">crosstab()</code> function from the tablefunc extension) does the same job.</div>
+
+      <h2 class="section-title">Commit &amp; rollback</h2>
+      <p class="desc">Whether a DML statement takes effect immediately depends on the connection's autocommit setting. With autocommit off, nothing is durable until COMMIT runs; ROLLBACK discards everything back to the last commit or savepoint.</p>
+      <div class="tbl-wrap">
+        <table class="ref">
+          <tr><th>Isolation level</th><th>Dirty read</th><th>Non-repeatable read</th><th>Phantom read</th></tr>
+          <tr><td>READ UNCOMMITTED</td><td>Possible</td><td>Possible</td><td>Possible</td></tr>
+          <tr><td>READ COMMITTED</td><td class="muted">Prevented</td><td>Possible</td><td>Possible</td></tr>
+          <tr><td>REPEATABLE READ</td><td class="muted">Prevented</td><td class="muted">Prevented</td><td>Possible (engine-dependent)</td></tr>
+          <tr><td>SERIALIZABLE</td><td class="muted">Prevented</td><td class="muted">Prevented</td><td class="muted">Prevented</td></tr>
+        </table>
+      </div>
+      <p class="desc">Higher isolation buys correctness at the cost of concurrency — SERIALIZABLE can force transactions to retry when they'd otherwise conflict.</p>
+    </section>
+
+    <!-- ================= PAGE 3: ADVANCED OBJECTS ================= -->
+    <section class="page" id="page-objects">
+      <div class="page-head">
+        <h1>Advanced objects</h1>
+        <p>Views, subqueries, CTEs, window functions, stored procedures, triggers, and the transaction guarantees underneath all of it.</p>
+      </div>
+
+      <h2 class="section-title">Views</h2>
+      <p class="desc">A view is a stored SELECT that behaves like a read-only (or sometimes updatable) table — useful for hiding join complexity, restricting which columns a role can see, or reusing a common query shape.</p>
+      <pre class="code"><code class="sql">CREATE VIEW active_employees AS
+SELECT id, full_name, department
+FROM employees
+WHERE terminated_on IS NULL;
+
+CREATE OR REPLACE VIEW active_employees AS ...
+DROP VIEW active_employees;</code></pre>
+      <div class="callout"><strong>Materialized views</strong> store the result physically and need an explicit <code style="font-family:'JetBrains Mono',monospace;background:var(--panel-2);padding:1px 6px;border-radius:5px;">REFRESH</code> — trade freshness for speed on expensive aggregations.</div>
+
+      <h2 class="section-title">Subqueries</h2>
+      <div class="split">
+        <div>
+          <h3 class="sub-title">Non-correlated</h3>
+          <p class="desc">Runs once, independent of the outer query.</p>
+          <pre class="code"><code class="sql">SELECT full_name
+FROM employees
+WHERE department IN (
+  SELECT id FROM departments
+  WHERE region = 'APAC'
+);</code></pre>
+        </div>
+        <div>
+          <h3 class="sub-title">Correlated</h3>
+          <p class="desc">References the outer row, so it re-runs per row.</p>
+          <pre class="code"><code class="sql">SELECT e.full_name
+FROM employees e
+WHERE e.salary > (
+  SELECT AVG(e2.salary)
+  FROM employees e2
+  WHERE e2.department = e.department
+);</code></pre>
+        </div>
+      </div>
+      <p class="desc">Subqueries can sit in SELECT (scalar), FROM (as a derived table), or WHERE — a correlated one in WHERE is easy to write but often slower than the equivalent JOIN or window function.</p>
+
+      <h2 class="section-title">CTEs (WITH clause)</h2>
+      <p class="desc">A common table expression names a subquery so it can be referenced once and read top-to-bottom, instead of nesting derived tables inside FROM. Most engines don't materialize a CTE by default — it's inlined like a view, so it isn't automatically faster than the equivalent subquery.</p>
+      <span class="code-label">a plain CTE</span>
+      <pre class="code"><code class="sql">WITH dept_avg AS (
+  SELECT department, AVG(salary) AS avg_salary
+  FROM employees
+  GROUP BY department
+)
+SELECT e.full_name, e.salary, d.avg_salary
+FROM employees e
+JOIN dept_avg d ON d.department = e.department
+WHERE e.salary > d.avg_salary;</code></pre>
+      <span class="code-label">a recursive CTE — walking a manager hierarchy</span>
+      <pre class="code"><code class="sql">WITH RECURSIVE org_chart AS (
+  SELECT id, full_name, manager_id, 1 AS depth
+  FROM employees
+  WHERE manager_id IS NULL          -- anchor: the top of the tree
+
+  UNION ALL
+
+  SELECT e.id, e.full_name, e.manager_id, oc.depth + 1
+  FROM employees e
+  JOIN org_chart oc ON e.manager_id = oc.id   -- recursive step
+)
+SELECT * FROM org_chart ORDER BY depth;</code></pre>
+      <div class="callout"><strong>Anchor + recursive step</strong> — a recursive CTE always has two parts joined by UNION ALL: a non-recursive anchor query, and a recursive query that references the CTE's own name until it returns no more rows.</div>
+
+      <h2 class="section-title">Window functions</h2>
+      <p class="desc">A window function computes across a set of rows related to the current one — via <code style="font-family:'JetBrains Mono',monospace;background:var(--panel-2);padding:1px 6px;border-radius:5px;">PARTITION BY</code> — without collapsing them into one row the way GROUP BY does.</p>
+      <pre class="code"><code class="sql">SELECT
+  full_name,
+  department,
+  salary,
+  RANK()       OVER (PARTITION BY department ORDER BY salary DESC) AS dept_rank,
+  ROW_NUMBER() OVER (PARTITION BY department ORDER BY salary DESC) AS row_num,
+  LAG(salary)  OVER (PARTITION BY department ORDER BY salary DESC) AS next_lowest,
+  SUM(salary)  OVER (PARTITION BY department
+                      ORDER BY salary DESC
+                      ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW) AS running_total
+FROM employees;</code></pre>
+      <div class="tbl-wrap">
+        <table class="ref">
+          <tr><th>Function</th><th>Returns</th></tr>
+          <tr><td><code>ROW_NUMBER()</code></td><td>Sequential number, no ties.</td></tr>
+          <tr><td><code>RANK()</code></td><td>Same rank for ties, then skips numbers.</td></tr>
+          <tr><td><code>DENSE_RANK()</code></td><td>Same rank for ties, no skipped numbers.</td></tr>
+          <tr><td><code>NTILE(n)</code></td><td>Splits rows into n roughly equal buckets.</td></tr>
+          <tr><td><code>LAG()</code> / <code>LEAD()</code></td><td>Value from a previous / following row in the same partition.</td></tr>
+        </table>
+      </div>
+
+      <h2 class="section-title">Stored procedures</h2>
+      <p class="desc">A named, precompiled block of SQL and control-flow logic, called rather than sent as a fresh statement each time. Syntax varies more than anything else in SQL — this is Postgres' PL/pgSQL shape.</p>
+      <pre class="code"><code class="sql">CREATE PROCEDURE give_raise(emp_id INT, pct NUMERIC)
+LANGUAGE plpgsql AS $$
+BEGIN
+  UPDATE employees
+  SET salary = salary * (1 + pct / 100)
+  WHERE id = emp_id;
+END;
+$$;
+
+CALL give_raise(101, 5);</code></pre>
+      <div class="callout"><strong>Procedure vs function</strong> — a function must return a value and can be used inside a SELECT; a procedure doesn't have to return anything and is invoked with CALL, which makes it the natural home for multi-step operations, including transaction control.</div>
+
+      <h2 class="section-title">Triggers</h2>
+      <p class="desc">Code that fires automatically around an INSERT, UPDATE, or DELETE — before or after the row change is applied. Common uses: audit logging, enforcing a rule a CHECK constraint can't express, keeping a derived column in sync.</p>
+      <pre class="code"><code class="sql">CREATE OR REPLACE FUNCTION log_salary_change()
+RETURNS TRIGGER AS $$
+BEGIN
+  INSERT INTO salary_audit (emp_id, old_salary, new_salary, changed_at)
+  VALUES (OLD.id, OLD.salary, NEW.salary, NOW());
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE TRIGGER trg_salary_audit
+AFTER UPDATE OF salary ON employees
+FOR EACH ROW
+EXECUTE FUNCTION log_salary_change();</code></pre>
+      <div class="callout warn"><strong>Trigger cost</strong> — they run per row, hide business logic outside application code, and are easy to forget about during a bulk load. Use sparingly, and document them where the schema itself is documented.</div>
+
+      <h2 class="section-title">Transactions &amp; ACID</h2>
+      <div class="card-grid">
+        <div class="card"><div class="card-head"><h4>Atomicity</h4></div><p>All statements in the transaction apply, or none do.</p></div>
+        <div class="card"><div class="card-head"><h4>Consistency</h4></div><p>Every commit leaves the database satisfying its constraints.</p></div>
+        <div class="card"><div class="card-head"><h4>Isolation</h4></div><p>Concurrent transactions don't see each other's uncommitted work (to the degree the isolation level guarantees).</p></div>
+        <div class="card"><div class="card-head"><h4>Durability</h4></div><p>Once committed, the change survives a crash.</p></div>
+      </div>
+    </section>
+
+    <!-- ================= PAGE 4: DESIGN & SECURITY ================= -->
+    <section class="page" id="page-design">
+      <div class="page-head">
+        <h1>Design &amp; security</h1>
+        <p>How to shape a schema that holds up: normalization, ER modeling, data shapes at system scale, everyday best practices, defending against SQL injection, and planning for backups and scale.</p>
+      </div>
+
+      <h2 class="section-title">Best practices</h2>
+      <div class="tbl-wrap">
+        <table class="ref">
+          <tr><th>Practice</th><th>Why</th></tr>
+          <tr><td>Name tables/columns consistently</td><td>Reduces guesswork across a growing schema.</td></tr>
+          <tr><td>Index foreign keys and filter/sort columns</td><td>These are exactly the columns WHERE, JOIN, and ORDER BY lean on.</td></tr>
+          <tr><td>Avoid <code>SELECT *</code> in application code</td><td>A later column addition silently changes the result shape.</td></tr>
+          <tr><td>Enforce constraints in the schema</td><td><code>PRIMARY KEY</code>, <code>FOREIGN KEY</code>, <code>UNIQUE</code>, <code>CHECK</code>, and <code>NOT NULL</code> catch bad data before the app has to.</td></tr>
+          <tr><td>Read the query plan</td><td><code>EXPLAIN</code> / <code>EXPLAIN ANALYZE</code> shows whether an index is actually used.</td></tr>
+          <tr><td>Pool connections</td><td>Opening a new connection per request is one of the most common causes of database load under traffic.</td></tr>
+        </table>
+      </div>
+
+      <h2 class="section-title">Normalization</h2>
+      <p class="desc">Each normal form removes a specific kind of redundancy. Most application schemas stop at 3NF; analytics tables often denormalize deliberately for read speed.</p>
+      <div class="nf-row">
+        <div class="nf-tag">1NF</div>
+        <div><p><strong style="color:var(--text)">Rule:</strong> every column holds a single, atomic value — no repeating groups or comma-packed lists in one cell.</p><p><strong style="color:var(--text)">Fix:</strong> a "phone_numbers" column holding <code style="font-family:'JetBrains Mono',monospace;background:var(--panel-2);padding:1px 6px;border-radius:5px;">"555-1234, 555-5678"</code> becomes its own row per number in a related table.</p></div>
+      </div>
+      <div class="nf-row">
+        <div class="nf-tag">2NF</div>
+        <div><p><strong style="color:var(--text)">Rule:</strong> 1NF, plus every non-key column depends on the whole primary key — relevant only when the key is composite.</p><p><strong style="color:var(--text)">Fix:</strong> in an order_items table keyed on (order_id, product_id), a product_name column depends only on product_id — move it to a products table.</p></div>
+      </div>
+      <div class="nf-row">
+        <div class="nf-tag">3NF</div>
+        <div><p><strong style="color:var(--text)">Rule:</strong> 2NF, plus no non-key column depends on another non-key column (no transitive dependency).</p><p><strong style="color:var(--text)">Fix:</strong> an employees table storing both department_id and department_name should drop department_name — it depends on department_id, not on the employee.</p></div>
+      </div>
+      <div class="nf-row">
+        <div class="nf-tag">BCNF</div>
+        <div><p><strong style="color:var(--text)">Rule:</strong> a stricter 3NF — every determinant (anything another column fully depends on) must itself be a candidate key.</p><p><strong style="color:var(--text)">Fix:</strong> applies mainly when a table has multiple overlapping candidate keys; split so each determinant becomes its own key.</p></div>
+      </div>
+      <div class="callout"><strong>Denormalization is a trade, not a mistake</strong> — a reporting table that duplicates department_name alongside department_id avoids a join on every dashboard query, at the cost of updating two places when a department is renamed.</div>
+
+      <h2 class="section-title">ER modeling</h2>
+      <p class="desc">Entities become tables, attributes become columns, and relationships become foreign keys — except many-to-many, which needs a junction table in between.</p>
+      <div class="er-wrap">
+        <svg width="620" height="180" viewBox="0 0 620 180" xmlns="http://www.w3.org/2000/svg">
+          <rect x="10" y="60" width="140" height="60" rx="8" fill="var(--panel)" stroke="var(--border)" stroke-width="1.5"/>
+          <text x="80" y="85" text-anchor="middle" fill="var(--text)" font-family="Space Grotesk" font-size="13" font-weight="700">Customer</text>
+          <text x="80" y="103" text-anchor="middle" fill="var(--muted)" font-family="JetBrains Mono" font-size="10">id · name</text>
+
+          <rect x="240" y="60" width="140" height="60" rx="8" fill="var(--panel)" stroke="var(--border)" stroke-width="1.5"/>
+          <text x="310" y="85" text-anchor="middle" fill="var(--text)" font-family="Space Grotesk" font-size="13" font-weight="700">Order</text>
+          <text x="310" y="103" text-anchor="middle" fill="var(--muted)" font-family="JetBrains Mono" font-size="10">id · customer_id</text>
+
+          <rect x="470" y="0" width="140" height="60" rx="8" fill="var(--panel)" stroke="var(--border)" stroke-width="1.5"/>
+          <text x="540" y="25" text-anchor="middle" fill="var(--text)" font-family="Space Grotesk" font-size="13" font-weight="700">Order_Item</text>
+          <text x="540" y="43" text-anchor="middle" fill="var(--muted)" font-family="JetBrains Mono" font-size="10">order_id · product_id</text>
+
+          <rect x="470" y="120" width="140" height="60" rx="8" fill="var(--panel)" stroke="var(--border)" stroke-width="1.5"/>
+          <text x="540" y="145" text-anchor="middle" fill="var(--text)" font-family="Space Grotesk" font-size="13" font-weight="700">Product</text>
+          <text x="540" y="163" text-anchor="middle" fill="var(--muted)" font-family="JetBrains Mono" font-size="10">id · name · price</text>
+
+          <line x1="150" y1="90" x2="240" y2="90" stroke="var(--accent)" stroke-width="1.5"/>
+          <text x="195" y="83" text-anchor="middle" fill="var(--accent)" font-family="JetBrains Mono" font-size="10">1 : N</text>
+
+          <line x1="380" y1="80" x2="470" y2="45" stroke="var(--accent)" stroke-width="1.5"/>
+          <text x="425" y="55" text-anchor="middle" fill="var(--accent)" font-family="JetBrains Mono" font-size="10">1 : N</text>
+
+          <line x1="540" y1="60" x2="540" y2="120" stroke="var(--accent-2)" stroke-width="1.5"/>
+          <text x="565" y="93" text-anchor="middle" fill="var(--accent-2)" font-family="JetBrains Mono" font-size="10">N : 1</text>
+        </svg>
+      </div>
+      <p class="desc">Order and Product have a many-to-many relationship — one order can contain many products, and one product appears on many orders — resolved through the Order_Item junction table, which turns it into two one-to-many relationships.</p>
+
+      <h2 class="section-title">Data shapes &amp; modeling</h2>
+      <p class="desc">Beyond normalizing a single schema, how tables relate to each other at a system level depends on what the data is for — transactional systems and analytical systems tend to converge on different shapes.</p>
+      <div class="split">
+        <div>
+          <h3 class="sub-title">Wide vs. long (tidy) data</h3>
+          <p class="desc">Wide format gives each measured variable its own column (one row per entity). Long format stacks measurements into key/value-style rows, which most analytics and plotting tools expect.</p>
+          <pre class="code"><code class="sql">-- wide: one row per employee
+-- id | q1_sales | q2_sales | q3_sales
+
+-- long: one row per (employee, quarter)
+-- id | quarter | sales</code></pre>
+        </div>
+        <div>
+          <h3 class="sub-title">OLTP vs. OLAP shape</h3>
+          <p class="desc">OLTP schemas favor normalization for fast, safe writes. OLAP schemas favor wider, denormalized fact tables for fast reads over large aggregations.</p>
+          <div class="tbl-wrap" style="margin-bottom:0;">
+            <table class="ref">
+              <tr><th></th><th>OLTP</th><th>OLAP</th></tr>
+              <tr><td>Optimized for</td><td>Writes</td><td>Reads / aggregation</td></tr>
+              <tr><td>Shape</td><td>Normalized (3NF)</td><td>Star / snowflake</td></tr>
+              <tr><td>Example</td><td>Order-processing DB</td><td>Sales data warehouse</td></tr>
+            </table>
+          </div>
+        </div>
+      </div>
+      <h3 class="sub-title">Star schema</h3>
+      <p class="desc">A central fact table (the events being measured — orders, clicks, sales) with foreign keys out to surrounding dimension tables (who, what, when, where) that describe those events. A snowflake schema is the same idea with dimensions further normalized into sub-dimensions.</p>
+      <pre class="code"><code class="sql">-- fact table: one row per line item sold
+fact_sales(sale_id, date_id, customer_id, product_id, store_id, quantity, revenue)
+
+-- dimension tables describe the "who/what/when/where"
+dim_date(date_id, day, month, quarter, year)
+dim_customer(customer_id, name, region)
+dim_product(product_id, name, category)
+dim_store(store_id, city, country)</code></pre>
+      <div class="callout"><strong>Why denormalize dimensions here</strong> — a dashboard querying millions of fact rows can't afford deep joins across a fully normalized schema; a star schema trades some redundancy in the dimension tables for queries that touch far fewer tables.</div>
+
+      <h2 class="section-title">SQL injection</h2>
+      <p class="desc">Injection happens when untrusted input is concatenated directly into a SQL string, letting the input change the query's structure instead of just supplying a value.</p>
+      <div class="split">
+        <div>
+          <h3 class="sub-title" style="color:var(--danger);">Vulnerable pattern</h3>
+          <pre class="code"><code class="sql">-- application code builds this string directly
+"SELECT * FROM users WHERE username = '" + input + "'"</code></pre>
+        </div>
+        <div>
+          <h3 class="sub-title" style="color:var(--accent);">Parameterized fix</h3>
+          <pre class="code"><code class="sql">SELECT * FROM users WHERE username = ?;
+-- driver binds `input` as a value, never as SQL text</code></pre>
+        </div>
+      </div>
+      <div class="tbl-wrap">
+        <table class="ref">
+          <tr><th>Defense layer</th><th>What it does</th></tr>
+          <tr><td>Parameterized queries / bind variables</td><td>Input is always treated as data, never as executable SQL — the primary defense.</td></tr>
+          <tr><td>ORM query builders</td><td>Parameterize under the hood, so long as raw-SQL escape hatches aren't used with string concatenation.</td></tr>
+          <tr><td>Least-privilege DB accounts</td><td>An app account with only the permissions it needs limits the damage of any successful injection.</td></tr>
+          <tr><td>Input validation</td><td>Rejects clearly malformed input early — a second layer, not a replacement for parameterization.</td></tr>
+          <tr><td>Web application firewall</td><td>Blocks known attack patterns at the network edge.</td></tr>
+        </table>
+      </div>
+
+      <h2 class="section-title">Backups &amp; scalable architecture</h2>
+      <div class="tbl-wrap">
+        <table class="ref">
+          <tr><th>Backup type</th><th>What it captures</th></tr>
+          <tr><td>Full</td><td>The entire database at a point in time — simplest to restore, largest and slowest to take.</td></tr>
+          <tr><td>Incremental</td><td>Only what changed since the last backup of any kind — smallest, but a restore chains several files together.</td></tr>
+          <tr><td>Differential</td><td>Everything changed since the last full backup — a middle ground between the two.</td></tr>
+          <tr><td>Continuous (WAL / binlog)</td><td>A running log of every change, enabling point-in-time recovery to any moment, not just a backup checkpoint.</td></tr>
+        </table>
+      </div>
+      <p class="desc">Two numbers frame the plan: RPO (recovery point objective — how much recent data you can afford to lose) and RTO (recovery time objective — how long you can afford to be down).</p>
+      <h3 class="sub-title">Scaling paths</h3>
+      <div class="tbl-wrap">
+        <table class="ref">
+          <tr><th>Strategy</th><th>Trade-off</th></tr>
+          <tr><td>Vertical scaling</td><td>Simplest — bigger machine, no application changes — but has a ceiling and a single point of failure.</td></tr>
+          <tr><td>Read replicas</td><td>Spreads read load; writes still funnel through one primary, and replicas lag slightly behind it.</td></tr>
+          <tr><td>Sharding / partitioning</td><td>Splits data across nodes by key — scales writes too, at the cost of cross-shard queries becoming harder.</td></tr>
+          <tr><td>Caching layer</td><td>Absorbs repeat reads before they reach the database — needs an explicit invalidation strategy.</td></tr>
+          <tr><td>Connection pooling</td><td>Reuses a fixed set of connections instead of opening one per request — cheap, and usually the first fix under load.</td></tr>
+        </table>
+      </div>
+    </section>
+
+  </main>
+</div>
+
+<script>
+(function () {
+  var buttons = document.querySelectorAll('.navlist button');
+  var pages = document.querySelectorAll('.page');
+
+  function showPage(name) {
+    pages.forEach(function (p) { p.classList.toggle('active', p.id === 'page-' + name); });
+    buttons.forEach(function (b) {
+      var isActive = b.getAttribute('data-page') === name;
+      b.classList.toggle('active', isActive);
+      b.setAttribute('aria-selected', isActive ? 'true' : 'false');
+    });
+    window.scrollTo(0, 0);
+    try { history.replaceState(null, '', '#' + name); } catch (e) {}
+  }
+
+  buttons.forEach(function (b) {
+    b.addEventListener('click', function () { showPage(b.getAttribute('data-page')); });
+  });
+
+  var initial = (location.hash || '').replace('#', '');
+  var valid = ['sublanguages', 'toolkit', 'objects', 'design'];
+  if (valid.indexOf(initial) !== -1) showPage(initial);
+
+  // theme toggle
+  var root = document.documentElement;
+  document.getElementById('btn-dark').addEventListener('click', function () {
+    root.setAttribute('data-theme', 'dark');
+    syncThemeButtons();
+  });
+  document.getElementById('btn-light').addEventListener('click', function () {
+    root.setAttribute('data-theme', 'light');
+    syncThemeButtons();
+  });
+  function syncThemeButtons() {
+    var t = root.getAttribute('data-theme');
+    document.getElementById('btn-dark').classList.toggle('on', t === 'dark');
+    document.getElementById('btn-light').classList.toggle('on', t === 'light');
+  }
+  syncThemeButtons();
+
+  // lightweight SQL syntax highlighting
+  var KEYWORDS = ['SELECT','FROM','WHERE','GROUP BY','ORDER BY','HAVING','LIMIT','INSERT','INTO','VALUES',
+    'UPDATE','SET','DELETE','MERGE','USING','WHEN','MATCHED','THEN','CREATE','TABLE','ALTER','ADD','DROP',
+    'COLUMN','RENAME','TO','TRUNCATE','PRIMARY KEY','FOREIGN KEY','NOT NULL','DEFAULT','CHECK','UNIQUE',
+    'GRANT','REVOKE','ON','BEGIN','TRANSACTION','COMMIT','ROLLBACK','SAVEPOINT','AND','OR','NOT','IN',
+    'BETWEEN','LIKE','IS','NULL','EXISTS','UNION','ALL','INTERSECT','EXCEPT','AS','JOIN','INNER','LEFT',
+    'RIGHT','FULL','OUTER','CROSS','SELF','ON','CASE','WHEN','ELSE','END','DISTINCT','VIEW','OR REPLACE',
+    'PARTITION BY','OVER','ROWS','UNBOUNDED','PRECEDING','CURRENT ROW','PROCEDURE','LANGUAGE','RETURNS',
+    'TRIGGER','FUNCTION','FOR EACH ROW','EXECUTE','AFTER','BEFORE','OF','CALL','RETURN','NEW','OLD',
+    'INTERVAL','EXTRACT','ASC','DESC','WITH'];
+
+  function escapeHtml(s) {
+    return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  }
+
+  function highlight(raw) {
+    var escaped = escapeHtml(raw);
+    var tokens = [];
+    // pull out comments and strings first so keyword matching can't touch them
+    escaped = escaped.replace(/(--[^\n]*)/g, function (m) {
+      tokens.push('<span class="cmt">' + m + '</span>');
+      return '\u0000' + (tokens.length - 1) + '\u0000';
+    });
+    escaped = escaped.replace(/('[^']*')/g, function (m) {
+      tokens.push('<span class="str">' + m + '</span>');
+      return '\u0000' + (tokens.length - 1) + '\u0000';
+    });
+    KEYWORDS.sort(function (a, b) { return b.length - a.length; });
+    KEYWORDS.forEach(function (kw) {
+      var pattern = new RegExp('\\b' + kw.replace(/ /g, '\\s+') + '\\b', 'gi');
+      escaped = escaped.replace(pattern, function (m) { return '<span class="kw">' + m + '</span>'; });
+    });
+    escaped = escaped.replace(/\b(\d+(\.\d+)?)\b/g, '<span class="num">$1</span>');
+    escaped = escaped.replace(/\u0000(\d+)\u0000/g, function (_, i) { return tokens[i]; });
+    return escaped;
+  }
+
+  document.querySelectorAll('pre.code code.sql').forEach(function (block) {
+    block.innerHTML = highlight(block.textContent);
+  });
+})();
+</script>
+</body>
+</html>

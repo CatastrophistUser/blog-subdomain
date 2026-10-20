@@ -1,0 +1,55 @@
+---
+import Layout from "../layouts/Layout.astro";
+import Card from "../components/Card.astro";
+import { getPosts } from "../utils/posts";
+import { SITE } from "../config";
+
+const posts = (await getPosts()).slice(0, SITE.homePosts);
+---
+
+<Layout>
+  <main id="main-content">
+    <section id="recent-posts">
+      <h1>Recent Posts</h1>
+      <ul>
+        {posts.map((post) => <Card post={post} secHeading={false} />)}
+      </ul>
+    </section>
+
+    <div class="all-posts">
+      <a href="/posts/">
+        All Posts
+        <svg class="icon" viewBox="0 0 24 24" aria-hidden="true">
+          <path d="m11.293 17.293 1.414 1.414L19.414 12l-6.707-6.707-1.414 1.414L15.586 11H6v2h9.586z" />
+        </svg>
+      </a>
+    </div>
+  </main>
+</Layout>
+
+<style>
+  #recent-posts {
+    padding-top: 2rem;
+  }
+  #recent-posts h1 {
+    font-size: 1.5rem;
+    font-weight: 600;
+    letter-spacing: 0.05em;
+  }
+  .all-posts {
+    margin-block: 2rem;
+    text-align: center;
+  }
+  .all-posts a {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+    padding: 0.5rem;
+  }
+  .all-posts a:hover {
+    color: var(--accent);
+  }
+  .all-posts a:hover svg {
+    fill: var(--accent);
+  }
+</style>

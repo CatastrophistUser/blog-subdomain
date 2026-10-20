@@ -1,0 +1,44 @@
+---
+import Layout from "../layouts/Layout.astro";
+import { SITE } from "../config";
+---
+
+<Layout title={`404 Not Found | ${SITE.title}`}>
+  <main id="main-content" class="not-found">
+    <h1>404</h1>
+    <span aria-hidden="true">¯\_(ツ)_/¯</span>
+    <p>Page Not Found</p>
+    <a href="/">Go back home</a>
+  </main>
+</Layout>
+
+<style>
+  .not-found {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    text-align: center;
+  }
+  h1 {
+    font-size: 6rem;
+    font-weight: 700;
+    color: var(--accent);
+  }
+  span {
+    font-size: 1.5rem;
+  }
+  p {
+    font-size: 1.25rem;
+    margin-bottom: 1.5rem;
+  }
+  a {
+    text-decoration: underline dashed;
+    text-underline-offset: 8px;
+    font-size: 1.125rem;
+  }
+  a:hover {
+    color: var(--accent);
+  }
+</style>
