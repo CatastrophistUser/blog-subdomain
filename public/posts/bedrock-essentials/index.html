@@ -14,6 +14,9 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700;12..96,800&family=IBM+Plex+Sans:ital,wght@0,400;0,500;0,600;1,400&family=JetBrains+Mono:wght@400;500&display=swap">
+<script>
+(function(){var t="dark";try{t=localStorage.getItem("theme")||"dark"}catch(e){}document.documentElement.dataset.theme=t})();
+</script>
 <style>
 html{color-scheme:light}body{margin:0}img{max-width:100%}[hidden]{display:none!important}
 /* Layout: geological strata hero (one band per chapter) over a two-column field guide — sticky chapter rail + reading column; floating tutor bottom-right. */
@@ -68,6 +71,10 @@ nav.rail a{display:flex;gap:10px;padding:6px 8px;border-radius:4px;color:var(--m
 nav.rail a b{font-family:var(--f-mono);font-weight:500;font-size:12px;color:var(--oxide);min-width:20px;padding-top:2px}
 nav.rail a:hover,nav.rail a.on{background:var(--surface);color:var(--ink)}
 main{min-width:0}
+
+.title-toggle{all:unset;cursor:pointer;border-radius:4px;transition:color .15s}
+.title-toggle:hover{color:var(--accent)}
+.title-toggle:focus-visible{outline:2px solid var(--accent);outline-offset:4px}
 section.ch{padding-block:28px 12px;border-bottom:1px solid var(--line);scroll-margin-top:20px}
 .chnum{font-family:var(--f-mono);font-size:12px;color:var(--oxide);letter-spacing:.08em;text-transform:uppercase}
 h2{font-family:var(--f-display);font-weight:700;font-size:clamp(28px,3.4vw,38px);line-height:1.1;letter-spacing:-.01em;margin:6px 0 14px;text-wrap:balance}
@@ -108,7 +115,7 @@ html{scroll-behavior:smooth}
 <div class="wrap">
   <header class="hero">
     <div>
-      <h1>Bedrock Essentials</h1>
+      <h1><button type="button" class="title-toggle" data-theme-toggle title="Toggle light/dark mode">Bedrock Essentials</button></h1>
       <p class="lede">From the first Converse call down to a deployed Strands agent: inference parameters, token accounting, tools, RAG on Knowledge Bases, Guardrails, fine-tuning, and a project boilerplate to start from.</p>
     </div>
     <div class="strata" aria-label="Chapters">
@@ -1194,6 +1201,21 @@ if __name__ == "__main__":
     }, {rootMargin: '-30% 0px -60% 0px'});
     document.querySelectorAll('section.ch').forEach(function(s){ io.observe(s); });
   }
+
+  // Theme toggle: clicking the page title.
+  var root = document.documentElement;
+  function syncToggles(){
+    var next = root.dataset.theme === 'dark' ? 'light' : 'dark';
+    document.querySelectorAll('[data-theme-toggle]').forEach(function(btn){ btn.setAttribute('aria-label', 'Switch to ' + next + ' mode'); });
+  }
+  document.querySelectorAll('[data-theme-toggle]').forEach(function(btn){
+    btn.addEventListener('click', function(){
+      root.dataset.theme = root.dataset.theme === 'dark' ? 'light' : 'dark';
+      try { localStorage.setItem('theme', root.dataset.theme); } catch(e){}
+      syncToggles();
+    });
+  });
+  syncToggles();
 
 })();
 </script>
